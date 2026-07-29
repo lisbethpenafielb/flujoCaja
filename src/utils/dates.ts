@@ -100,25 +100,22 @@ export function monthNameEs(iso: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+const MONTH_NAMES_ES = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+];
+
+/** Convierte el número de mes (1-12) de la columna MES de BASE CHEQUES a su
+ *  nombre en español, sin depender de la fecha (columna FECHAS puede diferir
+ *  del período MES/AÑO que Tesorería registró). */
+export function monthNumberToNameEs(n: number): string | null {
+  return n >= 1 && n <= 12 ? MONTH_NAMES_ES[n - 1] : null;
+}
+
 export function yearOf(iso: string): string {
   return iso.slice(0, 4);
 }
 
 export function dayOfMonth(iso: string): string {
   return iso.slice(8, 10);
-}
-
-/** Número de semana ISO-8601 (1-53), usado para el filtro "Semana" de cheques. */
-export function isoWeekNumber(iso: string): number {
-  const d = new Date(iso + 'T00:00:00');
-  const target = new Date(d.valueOf());
-  const dayNr = (d.getDay() + 6) % 7;
-  target.setDate(target.getDate() - dayNr + 3);
-  const firstThursday = new Date(target.getFullYear(), 0, 4);
-  const diff = target.getTime() - firstThursday.getTime();
-  return 1 + Math.round(diff / (7 * 86400000));
-}
-
-export function isoWeekLabel(iso: string): string {
-  return `Semana ${isoWeekNumber(iso)}`;
 }

@@ -76,6 +76,19 @@ export function cell(row: unknown[], idx: number): unknown {
   return idx >= 0 && idx < row.length ? row[idx] : undefined;
 }
 
+/** Convierte una letra de columna de Excel ("G", "AA", ...) a un índice de
+ *  columna base 0 (G -> 6). Tesorería confirmó las columnas exactas de BASE
+ *  CHEQUES por letra, así que el parser lee esos campos por posición fija en
+ *  vez de por nombre de encabezado (más robusto ante encabezados repetidos
+ *  o ligeramente distintos, ej. "ESTADO" vs "ESTATUS 2"). */
+export function columnLetterToIndex(letter: string): number {
+  let idx = 0;
+  for (const ch of letter.toUpperCase()) {
+    idx = idx * 26 + (ch.charCodeAt(0) - 64);
+  }
+  return idx - 1;
+}
+
 export function isRowEmpty(row: unknown[] | undefined): boolean {
   if (!row) return true;
   return row.every((c) => c === null || c === undefined || String(c).trim() === '');

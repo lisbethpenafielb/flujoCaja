@@ -159,6 +159,23 @@ Hallazgos que conviene corregir en el origen para un flujo de caja más preciso:
 6. La columna `DIAS ANTI` de BASE CHEQUES trae una fórmula rota (texto literal
    "ERROR"); el parser la ignora.
 
+## Columnas de BASE CHEQUES (confirmadas por Tesorería)
+
+`src/data/parsers/cheques.ts` lee estas columnas **por letra** (no por texto
+de encabezado), porque Tesorería confirmó su posición exacta en el archivo:
+
+| Columna | Campo | Uso |
+|---|---|---|
+| G | ESTADO | Estado del cheque (ENTREGADO/PAGADO/ANULADO/PROTESTADO...) |
+| J | MES | Filtro "Mes" en Cheques Diarios |
+| K | AÑO | Filtro "Año" en Cheques Diarios |
+| Q | BANCO | Filtro "Banco" en las 3 pestañas de cheques |
+| T | ESTATUS 2 | Filtro "Estatus 2" en Cheques Rezagados; también decide si un cheque está cobrado (ver más abajo) |
+| W | NEGOCIACION | Filtro "Negociación" en las 3 pestañas de cheques |
+
+Si Tesorería reorganiza las columnas de BASE CHEQUES, hay que actualizar el
+objeto `COL` al inicio de `cheques.ts` con las nuevas letras.
+
 ## Datos de ingreso manual (excepciones del módulo)
 
 Dos cosas **no provienen de ningún Excel** y se ingresan a mano; ambas viven

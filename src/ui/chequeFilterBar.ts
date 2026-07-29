@@ -1,9 +1,9 @@
 import type { CashEvent, ChequeFilters } from '../types';
 import { store, type ChequeFilterScope } from '../state/store';
-import { monthNameEs, yearOf, isoWeekLabel } from '../utils/dates';
+import { chequeMes, chequeAnio } from '../data/engine';
 import { h } from './dom';
 
-export type ChequeFilterDim = 'estado' | 'banco' | 'estatus2' | 'negociacion' | 'mes' | 'anio' | 'semana';
+export type ChequeFilterDim = 'estado' | 'banco' | 'estatus2' | 'negociacion' | 'mes' | 'anio';
 
 const DIM_LABEL: Record<ChequeFilterDim, string> = {
   estado: 'Estado',
@@ -12,7 +12,6 @@ const DIM_LABEL: Record<ChequeFilterDim, string> = {
   negociacion: 'Negociación',
   mes: 'Mes',
   anio: 'Año',
-  semana: 'Semana',
 };
 
 function uniqueSorted(values: (string | undefined)[]): string[] {
@@ -32,11 +31,9 @@ function valuesFor(dim: ChequeFilterDim, events: CashEvent[]): (string | undefin
     case 'negociacion':
       return events.map((e) => String(e.meta?.negociacion ?? ''));
     case 'mes':
-      return events.map((e) => monthNameEs(e.date));
+      return events.map(chequeMes);
     case 'anio':
-      return events.map((e) => yearOf(e.date));
-    case 'semana':
-      return events.map((e) => isoWeekLabel(e.date));
+      return events.map(chequeAnio);
   }
 }
 

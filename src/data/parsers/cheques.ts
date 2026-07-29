@@ -1,7 +1,7 @@
 import type { CashEvent, FlowConfidence } from '../../types';
-import { excelValueToISO } from '../../utils/dates';
+import { excelValueToISO, monthNumberToNameEs } from '../../utils/dates';
 import { parseExcelNumber } from '../../utils/format';
-import { allSheetGrids, cell, findColumn, findHeaderRow, isRowEmpty, readWorkbook } from '../xlsxUtils';
+import { allSheetGrids, cell, columnLetterToIndex, findColumn, findHeaderRow, isRowEmpty, readWorkbook } from '../xlsxUtils';
 
 // Mejora de modelo #6: la columna "DIAS ANTI" viene con una fórmula rota (texto
 // literal "ERROR") en el archivo fuente actual — se ignora deliberadamente.
@@ -27,6 +27,18 @@ function classifyEstado(estadoRaw: string): { confidence: FlowConfidence; exclud
 }
 
 const REQUIRED_TOKENS = ['EGRESO', 'PROVEEDORES', 'VALOR', 'FECHAS', 'ESTADO'];
+
+// Columnas confirmadas por Tesorería en BASE CHEQUES (por letra, no por texto
+// de encabezado): más robusto que buscar por nombre cuando hay encabezados
+// parecidos (ESTADO vs. ESTATUS 2) o que podrían variar levemente.
+const COL = {
+  estado: columnLetterToIndex('G'),
+  mes: columnLetterToIndex('J'),
+  anio: columnLetterToIndex('K'),
+  banco: columnLetterToIndex('Q'),
+  estatus2: columnLetterToIndex('T'),
+  negociacion: columnLetterToIndex('W'),
+};
 
 export function parseChequesWorkbook(bytes: ArrayBuffer, warnings: string[]): CashEvent[] {
   const wb = readWorkbook(bytes);
@@ -61,12 +73,8 @@ export function parseChequesWorkbook(bytes: ArrayBuffer, warnings: string[]): Ca
     categoria: findColumn(headers, ['CATEGORIA']),
     valor: findColumn(headers, ['VALOR']),
     fecha: findColumn(headers, ['FECHAS', 'FECHA CHEQUE', 'FECHA']),
-    estado: findColumn(headers, ['ESTADO']),
-    banco: findColumn(headers, ['BANCO']),
     firmante: findColumn(headers, ['FIRMANTE']),
     fechaCobro: findColumn(headers, ['FECHA COBRO']),
-    negociacion: findColumn(headers, ['NEGOCIACION']),
-    estatus2: findColumn(headers, ['ESTATUS 2']),
   };
 
   const events: CashEvent[] = [];
@@ -92,9 +100,12 @@ export function parseChequesWorkbook(bytes: ArrayBuffer, warnings: string[]): Ca
       continue;
     }
 
-    const estadoRaw = String(cell(row, idx.estado) ?? '').trim();
+    const estadoRaw = String(cell(row, COL.estado) ?? '').trim();
     const { confidence, excluded, reason } = classifyEstado(estadoRaw);
     const chequeNum = String(cell(row, idx.egreso) ?? '').trim();
+
+    const mesNumero = Number(cell(row, COL.mes));
+    const anioRaw = String(cell(row, COL.anio) ?? '').trim();
 
     events.push({
       id: `cheque-${chequeNum || r}`,
@@ -105,7 +116,7 @@ export function parseChequesWorkbook(bytes: ArrayBuffer, warnings: string[]): Ca
       category: String(cell(row, idx.categoria) ?? 'Sin categoría').trim() || 'Sin categoría',
       status: estadoRaw || 'Sin estado',
       confidence,
-      bank: String(cell(row, idx.banco) ?? '').trim() || undefined,
+      bank: String(cell(row, COL.banco) ?? '').trim() || undefined,
       source: 'BASE CHEQUES',
       sourceSheet: target.sheet,
       excluded,
@@ -113,9 +124,11 @@ export function parseChequesWorkbook(bytes: ArrayBuffer, warnings: string[]): Ca
       meta: {
         numeroCheque: chequeNum,
         firmante: String(cell(row, idx.firmante) ?? '').trim(),
-        negociacion: String(cell(row, idx.negociacion) ?? '').trim(),
-        estatusCobro: String(cell(row, idx.estatus2) ?? '').trim(),
+        negociacion: String(cell(row, COL.negociacion) ?? '').trim(),
+        estatusCobro: String(cell(row, COL.estatus2) ?? '').trim(),
         fechaCobro: excelValueToISO(cell(row, idx.fechaCobro)) ?? undefined,
+        mes: monthNumberToNameEs(mesNumero) ?? undefined,
+        anio: anioRaw || undefined,
       },
     });
   }

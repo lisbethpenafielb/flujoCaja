@@ -1,5 +1,5 @@
 import type { CashEvent } from '../types';
-import { addDays, todayISO } from '../utils/dates';
+import { addDays, monthNumberToNameEs, todayISO } from '../utils/dates';
 
 // Datos SIMULADOS para revisar diseño, navegación y funcionalidad sin depender
 // de Google Drive. La forma (nombres de columnas, categorías, proveedores) se
@@ -88,6 +88,8 @@ function makeCheque(opts: {
       negociacion: pick(NEGOCIACIONES, id + 1),
       estatusCobro: cobrado ? 'COBRADO' : 'PENDIENTE',
       fechaCobro: cobrado ? date : undefined,
+      mes: monthNumberToNameEs(Number(date.slice(5, 7))) ?? undefined,
+      anio: date.slice(0, 4),
     },
   };
 }

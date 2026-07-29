@@ -131,7 +131,7 @@ function render(): void {
     const allCheques = dataset.events.filter((e) => e.kind === 'cheque').sort((a, b) => (a.date < b.date ? -1 : 1));
     const shown = applyChequeFilters(allCheques, chequeFilters.diarios);
     main.appendChild(
-      renderChequeFilterBar('diarios', allCheques, chequeFilters.diarios, ['estado', 'mes', 'banco', 'negociacion', 'anio', 'semana'])
+      renderChequeFilterBar('diarios', allCheques, chequeFilters.diarios, ['estado', 'banco', 'mes', 'anio', 'negociacion'])
     );
     main.appendChild(
       renderChequeVendorPivot(buildChequeVendorPivot(shown), {
@@ -143,7 +143,7 @@ function render(): void {
   } else if (activeTab === 'tablaCheques') {
     const allCheques = dataset.events.filter((e) => e.kind === 'cheque');
     const shown = applyChequeFilters(allCheques, chequeFilters.tabla);
-    main.appendChild(renderChequeFilterBar('tabla', allCheques, chequeFilters.tabla, ['estado', 'banco', 'negociacion', 'semana']));
+    main.appendChild(renderChequeFilterBar('tabla', allCheques, chequeFilters.tabla, ['estado', 'banco', 'negociacion']));
     main.appendChild(renderChequesPivot(buildChequesPivot(shown)));
   } else if (activeTab === 'bancos') {
     main.appendChild(h('div', { class: 'max-w-2xl' }, [renderBankPanel(bankAccounts)]));

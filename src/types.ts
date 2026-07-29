@@ -92,7 +92,6 @@ export interface ChequeFilters {
   negociacion: string | 'todos';
   mes: string | 'todos';
   anio: string | 'todos';
-  semana: string | 'todos';
 }
 
 // --- Flujo de Caja en formato matriz (filas = partidas, columnas = período) -

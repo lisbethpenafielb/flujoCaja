@@ -18,7 +18,6 @@ import {
   daysBetween,
   formatDateEs,
   formatDateLongEs,
-  isoWeekLabel,
   monthNameEs,
   todayISO,
   weekStart,
@@ -365,15 +364,25 @@ export function buildTreasuryMatrix(events: CashEvent[], bankAccounts: BankAccou
 // Cheques: filtros tipo "botón" + tabla dinámica Año > Mes > Día
 // ============================================================================
 
+/** MES/AÑO de BASE CHEQUES (columnas J/K) tal como Tesorería las registró —
+ *  con respaldo a la fecha del cheque solo para eventos que no traen esas
+ *  columnas (demo, préstamos manuales). */
+export function chequeMes(e: CashEvent): string {
+  return String(e.meta?.mes ?? monthNameEs(e.date));
+}
+
+export function chequeAnio(e: CashEvent): string {
+  return String(e.meta?.anio ?? yearOf(e.date));
+}
+
 export function applyChequeFilters(events: CashEvent[], filters: ChequeFilters): CashEvent[] {
   return events.filter((e) => {
     if (filters.estado !== 'todos' && e.status !== filters.estado) return false;
     if (filters.banco !== 'todos' && (e.bank ?? 'Sin banco') !== filters.banco) return false;
     if (filters.estatus2 !== 'todos' && String(e.meta?.estatusCobro ?? 'Sin estatus') !== filters.estatus2) return false;
     if (filters.negociacion !== 'todos' && String(e.meta?.negociacion ?? 'Sin negociación') !== filters.negociacion) return false;
-    if (filters.mes !== 'todos' && monthNameEs(e.date) !== filters.mes) return false;
-    if (filters.anio !== 'todos' && yearOf(e.date) !== filters.anio) return false;
-    if (filters.semana !== 'todos' && isoWeekLabel(e.date) !== filters.semana) return false;
+    if (filters.mes !== 'todos' && chequeMes(e) !== filters.mes) return false;
+    if (filters.anio !== 'todos' && chequeAnio(e) !== filters.anio) return false;
     return true;
   });
 }

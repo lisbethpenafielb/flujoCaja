@@ -172,3 +172,21 @@ export interface VendorPivot {
   totalsByDate: Record<string, number>;
   grandTotal: number;
 }
+
+// --- Tabla dinámica plana Proveedor + N° Cheque × Fecha (Cheques Rezagados) -
+// Una fila por cheque (sin agrupar/colapsar por proveedor), igual a la tabla
+// dinámica de Excel "Suma de NO COBRADOS" con PROVEEDORES + N° CH en filas.
+export interface FlatChequePivotRow {
+  proveedor: string;
+  numeroCheque: string;
+  date: string;
+  amount: number;
+}
+
+export interface FlatChequePivot {
+  dates: string[];
+  columnGroups: VendorPivotColumnGroup[];
+  rows: FlatChequePivotRow[];
+  totalsByDate: Record<string, number>;
+  grandTotal: number;
+}

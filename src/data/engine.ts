@@ -6,6 +6,7 @@ import type {
   ChequesPivotYear,
   DailyBucket,
   Filters,
+  FlatChequePivot,
   Kpis,
   TreasuryMatrix,
   TreasuryPeriod,
@@ -489,4 +490,39 @@ export function buildChequeVendorPivot(events: CashEvent[]): VendorPivot {
   }
 
   return { dates, columnGroups, rows, totalsByDate, grandTotal: rows.reduce((s, r) => s + r.total, 0) };
+}
+
+/** Tabla dinámica plana Proveedor + N° Cheque × Fecha para Cheques Rezagados
+ *  — una fila por cheque, sin colapsar por proveedor, igual a la tabla
+ *  dinámica de Excel de la que parte esta pestaña. */
+export function buildRezagadosPivot(events: CashEvent[]): FlatChequePivot {
+  const dates = [...new Set(events.map((e) => e.date))].sort();
+
+  const columnGroups: { label: string; span: number }[] = [];
+  for (const date of dates) {
+    const label = `${monthNameEs(date)} ${yearOf(date)}`;
+    const last = columnGroups[columnGroups.length - 1];
+    if (last && last.label === label) last.span++;
+    else columnGroups.push({ label, span: 1 });
+  }
+
+  const rows = [...events]
+    .sort((a, b) => {
+      const proveedor = a.counterparty.localeCompare(b.counterparty, 'es');
+      if (proveedor !== 0) return proveedor;
+      return (Number(a.meta?.numeroCheque) || 0) - (Number(b.meta?.numeroCheque) || 0);
+    })
+    .map((e) => ({
+      proveedor: e.counterparty,
+      numeroCheque: String(e.meta?.numeroCheque ?? '—'),
+      date: e.date,
+      amount: e.amount,
+    }));
+
+  const totalsByDate: Record<string, number> = {};
+  for (const date of dates) {
+    totalsByDate[date] = rows.filter((r) => r.date === date).reduce((s, r) => s + r.amount, 0);
+  }
+
+  return { dates, columnGroups, rows, totalsByDate, grandTotal: rows.reduce((s, r) => s + r.amount, 0) };
 }

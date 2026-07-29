@@ -11,6 +11,7 @@ import {
   buildDailyProjection,
   buildDayPeriods,
   buildManualLoanEvents,
+  buildRezagadosPivot,
   buildTreasuryMatrix,
   buildWeekPeriods,
   chequesRezagados,
@@ -23,7 +24,7 @@ import { renderRiskCard } from './ui/riskCard';
 import { renderDashboardChart } from './ui/dashboardChart';
 import { renderTreasuryMatrix } from './ui/treasuryMatrix';
 import { renderWeeklySummaryCards } from './ui/weeklySummaryCards';
-import { renderRezagadosCards } from './ui/rezagadosCards';
+import { renderRezagadosPivot } from './ui/rezagadosPivot';
 import { renderChequeVendorPivot } from './ui/chequeVendorPivot';
 import { renderChequesPivot } from './ui/chequesPivotTable';
 import { renderChequeFilterBar } from './ui/chequeFilterBar';
@@ -166,7 +167,7 @@ function render(): void {
     const shown = applyChequeFilters(baseRezagados, chequeFilters.rezagados);
     main.appendChild(renderChequeFilterBar('rezagados', baseRezagados, chequeFilters.rezagados, ['estado', 'banco', 'estatus2', 'negociacion']));
     main.appendChild(
-      renderRezagadosCards(shown, {
+      renderRezagadosPivot(buildRezagadosPivot(shown), {
         subtitle: `Cheques con fecha anterior a hoy (${todayISO()}) aún no cobrados`,
         emptyLabel: 'No hay cheques rezagados con los filtros seleccionados.',
       })

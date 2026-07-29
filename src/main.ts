@@ -28,12 +28,12 @@ import { renderChequeVendorPivot } from './ui/chequeVendorPivot';
 import { renderChequesPivot } from './ui/chequesPivotTable';
 import { renderChequeFilterBar } from './ui/chequeFilterBar';
 import { renderAlerts } from './ui/alerts';
-import { renderFilters } from './ui/filters';
+import { renderFilters, renderMonthFilter } from './ui/filters';
 import { renderBankPanel } from './ui/bankPanel';
 import { renderConfigPanel } from './ui/configPanel';
 import { renderEmptyState, renderWarningsBanner } from './ui/emptyState';
 import { h, mount } from './ui/dom';
-import { addDays, daysBetween, todayISO } from './utils/dates';
+import { addDays, daysBetween, monthBounds, monthKeyLabelEs, todayISO } from './utils/dates';
 import { loadDemoData } from './demo/loadDemo';
 
 const app = document.getElementById('app')!;
@@ -74,7 +74,7 @@ function render(): void {
   const main = h('main', { class: 'flex-1 px-6 py-6 flex flex-col gap-5 max-w-[1700px] w-full mx-auto' });
   root.appendChild(main);
 
-  const { dataset, bankAccounts, filters, chequeFilters, manualLoanEntries } = state;
+  const { dataset, bankAccounts, filters, chequeFilters, manualLoanEntries, monthlyFilter } = state;
   const openingBalance = totalBankBalance(bankAccounts);
   // Préstamo Perú / Préstamos Terceros no vienen de ningún Excel: se digitan a
   // mano y se mezclan aquí como eventos más, para que KPIs/alertas/matriz los
@@ -88,9 +88,12 @@ function render(): void {
   if (warningsBanner && activeTab === 'resumen') main.appendChild(warningsBanner);
 
   const CHEQUE_TABS: TabId[] = ['rezagados', 'chequesDiarios', 'tablaCheques'];
-  const NO_FILTER_TABS: TabId[] = ['bancos', 'configuracion'];
+  const NO_FILTER_TABS: TabId[] = ['bancos', 'configuracion', 'mensual'];
   if (!NO_FILTER_TABS.includes(activeTab) && !CHEQUE_TABS.includes(activeTab)) {
     main.appendChild(renderFilters(dataset.events, filters));
+  }
+  if (activeTab === 'mensual') {
+    main.appendChild(renderMonthFilter(monthlyFilter));
   }
 
   if (activeTab === 'resumen') {
@@ -141,15 +144,22 @@ function render(): void {
         onManualEdit: (category, date, value) => store.setManualLoanEntry(category, date, value),
       })
     );
-  } else if (activeTab === 'semanal') {
-    const daily = buildDailyProjection(filtered, openingBalance, filters.dateFrom, projectionDays);
-    const kpis = computeKpis(daily, openingBalance);
-    main.appendChild(renderKpiCards(kpis, { compact: true }));
-    const periods = buildWeekPeriods(filters.dateFrom, filters.dateTo);
-    main.appendChild(renderWeeklySummaryCards(daily, periods));
-    const forMatrix = applyFilters(eventsWithManual, { ...filters, dateFrom: '' });
-    const matrix = buildTreasuryMatrix(forMatrix, bankAccounts, periods);
-    main.appendChild(renderTreasuryMatrix(matrix, 'Flujo de Caja Semanal', 'Bancos + movimientos por semana, con arrastre de saldo'));
+  } else if (activeTab === 'mensual') {
+    // Deliberadamente desacoplado de `filters` (Flujo Diario): el único
+    // filtro aquí es el mes calendario elegido en `monthlyFilter`, así que
+    // se recalcula todo (KPIs, tarjetas semanales, matriz) desde cero con
+    // ese rango — nunca se mezcla con dateFrom/dateTo de otra pestaña.
+    const { start: monthStart, end: monthEnd } = monthBounds(monthlyFilter);
+    const daysInMonth = daysBetween(monthStart, monthEnd) + 1;
+    const monthlyDaily = buildDailyProjection(eventsWithManual, openingBalance, monthStart, daysInMonth);
+    const monthlyKpis = computeKpis(monthlyDaily, openingBalance);
+    main.appendChild(renderKpiCards(monthlyKpis, { compact: true }));
+    const periods = buildWeekPeriods(monthStart, monthEnd);
+    main.appendChild(renderWeeklySummaryCards(monthlyDaily, periods));
+    const matrix = buildTreasuryMatrix(eventsWithManual, bankAccounts, periods);
+    main.appendChild(
+      renderTreasuryMatrix(matrix, 'Flujo de Caja Mensual', `Semanas de ${monthKeyLabelEs(monthlyFilter)}, con arrastre de saldo`)
+    );
   } else if (activeTab === 'rezagados') {
     const allCheques = dataset.events.filter((e) => e.kind === 'cheque');
     const baseRezagados = chequesRezagados(allCheques, todayISO());

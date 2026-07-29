@@ -55,6 +55,25 @@ export function filterDate(iconName: IconName, label: string, value: string, onC
   );
 }
 
+export function filterMonth(iconName: IconName, label: string, value: string, onChange: (v: string) => void): HTMLElement {
+  const input = h('input', {
+    type: 'month',
+    value,
+    class: 'text-[13px] font-medium outline-none tabular-nums bg-transparent',
+    style: 'color:var(--ink-primary);min-width:0',
+    onchange: (e: Event) => onChange((e.target as HTMLInputElement).value),
+  });
+  return h(
+    'label',
+    {
+      class: 'inline-flex items-center gap-2 rounded-lg px-3',
+      style: `height:${FIELD_HEIGHT};border:1px solid var(--gridline);background:var(--page)`,
+      title: label,
+    },
+    [h('span', { style: 'color:var(--ink-muted)', html: iconSvg(iconName, 14) }), input]
+  );
+}
+
 export function filterResetButton(onClick: () => void, label = 'Limpiar'): HTMLElement {
   return h(
     'button',

@@ -1,7 +1,7 @@
 import type { BankAccount, CashEvent, ChequeFilters, Filters, LoadedDataset } from '../types';
 import { loadBankAccounts, saveBankAccounts } from './bankAccounts';
 import { loadManualLoanEntries, saveManualLoanEntries, type ManualLoanEntries } from './manualLoans';
-import { todayISO, addDays } from '../utils/dates';
+import { todayISO, addDays, currentMonthKey } from '../utils/dates';
 
 export type SyncStatus = 'idle' | 'authenticating' | 'loading' | 'ready' | 'error';
 
@@ -15,6 +15,10 @@ interface State {
   // solo produciría filtrado "fantasma" (un filtro puesto en una pestaña
   // afectando silenciosamente a otra que no muestra ese control).
   chequeFilters: Record<ChequeFilterScope, ChequeFilters>;
+  // Flujo Mensual tiene su propio filtro (mes calendario), deliberadamente
+  // desacoplado de `filters.dateFrom/dateTo` (esos son de Flujo Diario) para
+  // que cambiar uno nunca afecte al otro.
+  monthlyFilter: string;
   manualLoanEntries: ManualLoanEntries;
   syncStatus: SyncStatus;
   syncError: string | null;
@@ -55,6 +59,7 @@ class Store {
       diarios: defaultChequeFilters(),
       tabla: defaultChequeFilters(),
     },
+    monthlyFilter: currentMonthKey(),
     manualLoanEntries: loadManualLoanEntries(),
     syncStatus: 'idle',
     syncError: null,
@@ -123,6 +128,11 @@ class Store {
 
   resetChequeFilters(scope: ChequeFilterScope): void {
     this.state.chequeFilters = { ...this.state.chequeFilters, [scope]: defaultChequeFilters() };
+    this.emit();
+  }
+
+  setMonthlyFilter(month: string): void {
+    this.state.monthlyFilter = month;
     this.emit();
   }
 

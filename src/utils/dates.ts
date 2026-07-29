@@ -119,3 +119,27 @@ export function yearOf(iso: string): string {
 export function dayOfMonth(iso: string): string {
   return iso.slice(8, 10);
 }
+
+/** Clave de mes calendario "YYYY-MM" a partir de una fecha ISO — independiente
+ *  de las columnas MES/AÑO de BASE CHEQUES (esas son específicas de cheques). */
+export function monthKeyOf(iso: string): string {
+  return iso.slice(0, 7);
+}
+
+export function currentMonthKey(): string {
+  return monthKeyOf(todayISO());
+}
+
+/** Primer y último día calendario del mes "YYYY-MM". */
+export function monthBounds(monthKey: string): { start: string; end: string } {
+  const [y, m] = monthKey.split('-').map(Number);
+  const start = `${monthKey}-01`;
+  const lastDay = new Date(y, m, 0).getDate();
+  const end = `${monthKey}-${String(lastDay).padStart(2, '0')}`;
+  return { start, end };
+}
+
+/** "Agosto 2026" — para el encabezado de la pestaña Flujo Mensual. */
+export function monthKeyLabelEs(monthKey: string): string {
+  return `${monthNameEs(`${monthKey}-01`)} ${monthKey.slice(0, 4)}`;
+}

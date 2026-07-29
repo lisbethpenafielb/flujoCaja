@@ -19,7 +19,7 @@ export interface CashEvent {
   status: string;
   confidence: FlowConfidence;
   bank?: string;
-  source: 'BASE CHEQUES' | 'PROYECCION DE CARTERA' | 'PAGOS FIJOS';
+  source: 'BASE CHEQUES' | 'PROYECCION DE CARTERA' | 'PAGOS FIJOS' | 'MANUAL';
   sourceSheet: string;
   excluded?: boolean;
   excludedReason?: string;
@@ -111,6 +111,10 @@ export interface TreasuryRow {
   rezagados: number | null;
   values: (number | null)[];
   total: number | null;
+  /** Partidas que no vienen de ningún Excel (ej. Préstamo Perú / Préstamos
+   *  Terceros): sus celdas por período se pueden digitar manualmente. */
+  manual?: boolean;
+  manualCategory?: string;
 }
 
 export interface TreasuryMatrix {

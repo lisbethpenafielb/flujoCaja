@@ -26,15 +26,22 @@ function rowStyle(kind: TreasuryRow['kind']): { label: string; value: string; bg
   }
 }
 
-export function renderTreasuryMatrix(matrix: TreasuryMatrix, title: string, subtitle: string): HTMLElement {
+export interface TreasuryMatrixOptions {
+  /** Cuando se pasa, las filas marcadas `manual` (Préstamo Perú / Préstamos
+   *  Terceros) muestran un input editable en cada columna de un solo día en
+   *  vez de texto — esa información no viene de ningún Excel. */
+  onManualEdit?: (category: string, date: string, value: number | null) => void;
+}
+
+export function renderTreasuryMatrix(matrix: TreasuryMatrix, title: string, subtitle: string, opts: TreasuryMatrixOptions = {}): HTMLElement {
   const { periods, totalRezagadosBancos, rows } = matrix;
 
-  const headCell = (text: string, opts: { bg?: string; color?: string; align?: 'left' | 'right' } = {}) =>
+  const headCell = (text: string, cellOpts: { bg?: string; color?: string; align?: 'left' | 'right' } = {}) =>
     h(
       'th',
       {
         class: 'text-xs font-semibold uppercase tracking-wide px-3 py-2.5 whitespace-nowrap',
-        style: `background:${opts.bg ?? 'var(--surface)'};color:${opts.color ?? 'var(--ink-muted)'};text-align:${opts.align ?? 'right'};border-bottom:1px solid var(--gridline)`,
+        style: `background:${cellOpts.bg ?? 'var(--surface)'};color:${cellOpts.color ?? 'var(--ink-muted)'};text-align:${cellOpts.align ?? 'right'};border-bottom:1px solid var(--gridline)`,
       },
       [text]
     );
@@ -46,8 +53,43 @@ export function renderTreasuryMatrix(matrix: TreasuryMatrix, title: string, subt
     headCell('Total', { bg: '#e7e6e2', color: 'var(--ink-secondary)' }),
   ]);
 
+  function manualInput(category: string, date: string, value: number | null): HTMLElement {
+    return h('input', {
+      type: 'number',
+      step: '0.01',
+      placeholder: '0.00',
+      value: value ? String(value) : '',
+      class: 'tabular-nums text-sm text-right w-full rounded px-1.5 py-0.5 outline-none',
+      style: 'border:1px solid var(--gridline);background:var(--surface);color:#a3271f;max-width:110px',
+      oninput: (e: Event) => {
+        const raw = (e.target as HTMLInputElement).value;
+        const num = raw === '' ? null : Number(raw);
+        opts.onManualEdit?.(category, date, num !== null && isFinite(num) ? num : null);
+      },
+    });
+  }
+
   const bodyRows = rows.map((row) => {
     const style = rowStyle(row.kind);
+    const editable = Boolean(row.manual && row.manualCategory && opts.onManualEdit);
+
+    const valueCells = row.values.map((v, i) => {
+      const period = periods[i];
+      if (editable && period.start === period.end) {
+        // Las filas de egreso guardan el valor en negativo para el cálculo;
+        // el input siempre debe mostrar/aceptar el monto en positivo, igual
+        // que Saldos Bancarios — el signo es un detalle interno de la matriz.
+        return h('td', { class: 'px-1.5 py-1', style: `background:${style.bg ?? 'transparent'}` }, [
+          manualInput(row.manualCategory!, period.start, v === null ? null : Math.abs(v)),
+        ]);
+      }
+      return h(
+        'td',
+        { class: 'tabular-nums text-sm px-3 py-2 text-right', style: `${style.value};background:${style.bg ?? 'transparent'}` },
+        [fmt(v)]
+      );
+    });
+
     const cells = [
       h(
         'td',
@@ -60,11 +102,7 @@ export function renderTreasuryMatrix(matrix: TreasuryMatrix, title: string, subt
       h('td', { class: 'tabular-nums text-sm px-3 py-2 text-right', style: `${style.value};background:${style.bg ?? 'transparent'}` }, [
         fmt(row.rezagados),
       ]),
-      ...row.values.map((v) =>
-        h('td', { class: 'tabular-nums text-sm px-3 py-2 text-right', style: `${style.value};background:${style.bg ?? 'transparent'}` }, [
-          fmt(v),
-        ])
-      ),
+      ...valueCells,
       h(
         'td',
         {
@@ -77,11 +115,15 @@ export function renderTreasuryMatrix(matrix: TreasuryMatrix, title: string, subt
     return h('tr', { class: 'border-b last:border-0', style: 'border-color:var(--gridline)' }, cells);
   });
 
+  const hasManualRows = rows.some((r) => r.manual);
+
   return h('div', { class: 'card overflow-hidden flex flex-col' }, [
     h('div', { class: 'px-5 py-4 flex flex-wrap items-center justify-between gap-3 border-b', style: 'border-color:var(--gridline)' }, [
       h('div', {}, [
         h('h3', { class: 'font-semibold', style: 'font-size:15px' }, [title]),
-        h('p', { class: 'text-xs', style: 'color:var(--ink-muted)' }, [subtitle]),
+        h('p', { class: 'text-xs', style: 'color:var(--ink-muted)' }, [
+          opts.onManualEdit && hasManualRows ? `${subtitle} · Préstamo Perú y Préstamos Terceros se digitan a mano` : subtitle,
+        ]),
       ]),
       h('div', { class: 'text-right' }, [
         h('p', { class: 'text-xs', style: 'color:var(--ink-muted)' }, ['Total bancos (rezagados)']),

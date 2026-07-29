@@ -1,5 +1,6 @@
 import type { BankAccount, CashEvent, ChequeFilters, Filters, LoadedDataset } from '../types';
 import { loadBankAccounts, saveBankAccounts } from './bankAccounts';
+import { loadManualLoanEntries, saveManualLoanEntries, type ManualLoanEntries } from './manualLoans';
 import { todayISO, addDays } from '../utils/dates';
 
 export type SyncStatus = 'idle' | 'authenticating' | 'loading' | 'ready' | 'error';
@@ -14,6 +15,7 @@ interface State {
   // solo produciría filtrado "fantasma" (un filtro puesto en una pestaña
   // afectando silenciosamente a otra que no muestra ese control).
   chequeFilters: Record<ChequeFilterScope, ChequeFilters>;
+  manualLoanEntries: ManualLoanEntries;
   syncStatus: SyncStatus;
   syncError: string | null;
   isDemo: boolean;
@@ -54,6 +56,7 @@ class Store {
       diarios: defaultChequeFilters(),
       tabla: defaultChequeFilters(),
     },
+    manualLoanEntries: loadManualLoanEntries(),
     syncStatus: 'idle',
     syncError: null,
     isDemo: false,
@@ -121,6 +124,15 @@ class Store {
 
   resetChequeFilters(scope: ChequeFilterScope): void {
     this.state.chequeFilters = { ...this.state.chequeFilters, [scope]: defaultChequeFilters() };
+    this.emit();
+  }
+
+  setManualLoanEntry(category: string, date: string, amount: number | null): void {
+    const byDate = { ...(this.state.manualLoanEntries[category] ?? {}) };
+    if (amount === null || amount === 0) delete byDate[date];
+    else byDate[date] = amount;
+    this.state.manualLoanEntries = { ...this.state.manualLoanEntries, [category]: byDate };
+    saveManualLoanEntries(this.state.manualLoanEntries);
     this.emit();
   }
 }

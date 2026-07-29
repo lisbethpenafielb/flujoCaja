@@ -13,30 +13,40 @@ const ICONS: Record<string, string> = {
   risk: '<path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/>',
 };
 
-function icon(name: keyof typeof ICONS, color: string): HTMLElement {
+function icon(name: keyof typeof ICONS, color: string, size: number): HTMLElement {
   const span = h('span', {
-    class: 'inline-flex items-center justify-center rounded-xl',
-    style: `width:38px;height:38px;background:${color}1a;color:${color}`,
+    class: 'inline-flex items-center justify-center rounded-lg flex-shrink-0',
+    style: `width:${size}px;height:${size}px;background:${color}1a;color:${color}`,
   });
-  span.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]}</svg>`;
+  const iconSize = Math.round(size * 0.55);
+  span.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]}</svg>`;
   return span;
 }
 
-function kpiCard(opts: {
+interface KpiCardOpts {
   label: string;
   value: string;
   sub?: string;
   iconName: keyof typeof ICONS;
   color: string;
-}): HTMLElement {
+}
+
+function kpiCard(opts: KpiCardOpts, compact: boolean): HTMLElement {
+  if (compact) {
+    return h('div', { class: 'card card-hover px-3 py-2.5 flex items-center gap-2.5 animate-fade-in' }, [
+      icon(opts.iconName, opts.color, 26),
+      h('div', { class: 'min-w-0' }, [
+        h('p', { class: 'text-[11px] font-medium truncate', style: 'color:var(--ink-secondary)' }, [opts.label]),
+        h('p', { class: 'tabular-nums font-semibold truncate', style: 'font-size:15px;letter-spacing:-0.01em' }, [opts.value]),
+      ]),
+    ]);
+  }
   return h('div', { class: 'card card-hover p-5 flex flex-col gap-3 animate-fade-in' }, [
     h('div', { class: 'flex items-center justify-between' }, [
       h('span', { class: 'text-sm font-medium', style: 'color:var(--ink-secondary)' }, [opts.label]),
-      icon(opts.iconName, opts.color),
+      icon(opts.iconName, opts.color, 38),
     ]),
-    h('div', { class: 'tabular-nums font-semibold', style: 'font-size:26px;letter-spacing:-0.02em' }, [
-      opts.value,
-    ]),
+    h('div', { class: 'tabular-nums font-semibold', style: 'font-size:26px;letter-spacing:-0.02em' }, [opts.value]),
     opts.sub ? h('div', { class: 'text-xs', style: 'color:var(--ink-muted)' }, [opts.sub]) : null,
   ]);
 }
@@ -47,82 +57,91 @@ const RIESGO_LABEL: Record<Kpis['riesgo'], { label: string; color: string }> = {
   alto: { label: 'Alto', color: STATUS.critical },
 };
 
-export function renderKpiCards(kpis: Kpis): HTMLElement {
+export function renderKpiCards(kpis: Kpis, opts: { compact?: boolean } = {}): HTMLElement {
+  const compact = opts.compact ?? false;
   const riesgo = RIESGO_LABEL[kpis.riesgo];
 
   const cards = [
-    kpiCard({
-      label: 'Saldo Bancario',
-      value: formatMoney(kpis.saldoBancario),
-      sub: 'Consolidado, 6 bancos',
-      iconName: 'bank',
-      color: '#2a78d6',
-    }),
-    kpiCard({
-      label: 'Cobranza Esperada',
-      value: formatMoney(kpis.cobranzaEsperada),
-      sub: 'Próximos 30 días',
-      iconName: 'inflow',
-      color: '#1baf7a',
-    }),
-    kpiCard({
-      label: 'Cheques Programados',
-      value: formatMoney(kpis.chequesProgramados),
-      sub: 'Próximos 30 días',
-      iconName: 'outflowCheck',
-      color: '#eb6834',
-    }),
-    kpiCard({
-      label: 'Pagos Fijos',
-      value: formatMoney(kpis.pagosFijos),
-      sub: 'Deuda IESS (ver aviso)',
-      iconName: 'outflowFixed',
-      color: '#4a3aa7',
-    }),
-    kpiCard({
-      label: 'Saldo Neto Proyectado',
-      value: formatMoney(kpis.saldoNetoProyectado),
-      sub: 'Al día 30',
-      iconName: 'net',
-      color: kpis.saldoNetoProyectado < 0 ? STATUS.critical : '#2a78d6',
-    }),
-    kpiCard({
-      label: 'Liquidez',
-      value: kpis.liquidezDias === null ? '—' : `${kpis.liquidezDias.toFixed(1)} días`,
-      sub: 'Cobertura de egresos con caja actual',
-      iconName: 'liquidity',
-      color: '#eda100',
-    }),
+    kpiCard(
+      { label: 'Saldo Bancario', value: formatMoney(kpis.saldoBancario), sub: 'Consolidado, 6 bancos', iconName: 'bank', color: '#2a78d6' },
+      compact
+    ),
+    kpiCard(
+      { label: 'Cobranza Esperada', value: formatMoney(kpis.cobranzaEsperada), sub: 'Próximos 30 días', iconName: 'inflow', color: '#1baf7a' },
+      compact
+    ),
+    kpiCard(
+      {
+        label: 'Cheques Programados',
+        value: formatMoney(kpis.chequesProgramados),
+        sub: 'Próximos 30 días',
+        iconName: 'outflowCheck',
+        color: '#eb6834',
+      },
+      compact
+    ),
+    kpiCard(
+      { label: 'Pagos Fijos', value: formatMoney(kpis.pagosFijos), sub: 'Deuda IESS (ver aviso)', iconName: 'outflowFixed', color: '#4a3aa7' },
+      compact
+    ),
+    kpiCard(
+      {
+        label: 'Saldo Neto Proyectado',
+        value: formatMoney(kpis.saldoNetoProyectado),
+        sub: 'Al día 30',
+        iconName: 'net',
+        color: kpis.saldoNetoProyectado < 0 ? STATUS.critical : '#2a78d6',
+      },
+      compact
+    ),
+    kpiCard(
+      {
+        label: 'Liquidez',
+        value: kpis.liquidezDias === null ? '—' : `${kpis.liquidezDias.toFixed(1)} días`,
+        sub: 'Cobertura de egresos con caja actual',
+        iconName: 'liquidity',
+        color: '#eda100',
+      },
+      compact
+    ),
   ];
 
-  const riesgoCard = h('div', { class: 'card card-hover p-5 flex flex-col gap-3 animate-fade-in' }, [
-    h('div', { class: 'flex items-center justify-between' }, [
-      h('span', { class: 'text-sm font-medium', style: 'color:var(--ink-secondary)' }, ['Semáforo de Riesgo']),
-      icon('risk', riesgo.color),
-    ]),
-    h('div', { class: 'flex items-center gap-2' }, [
-      h('span', {
-        class: 'inline-block rounded-full',
-        style: `width:14px;height:14px;background:${riesgo.color}`,
-      }),
-      h('span', { class: 'font-semibold', style: `font-size:26px;letter-spacing:-0.02em;color:${riesgo.color}` }, [
-        riesgo.label,
-      ]),
-    ]),
-    h('div', { class: 'text-xs', style: 'color:var(--ink-muted)' }, [
-      kpis.riesgo === 'alto'
-        ? 'Hay días con saldo proyectado negativo'
-        : kpis.riesgo === 'medio'
-        ? 'Cobertura de caja ajustada (< 7 días)'
-        : 'Cobertura de caja saludable',
-    ]),
-  ]);
+  const riesgoSub =
+    kpis.riesgo === 'alto'
+      ? 'Hay días con saldo proyectado negativo'
+      : kpis.riesgo === 'medio'
+      ? 'Cobertura de caja ajustada (< 7 días)'
+      : 'Cobertura de caja saludable';
 
-  return h('div', { class: 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4' }, [
-    ...cards.slice(0, 3),
-    riesgoCard,
-    cards[3],
-    cards[4],
-    cards[5],
-  ]);
+  const riesgoCard = compact
+    ? h('div', { class: 'card card-hover px-3 py-2.5 flex items-center gap-2.5 animate-fade-in' }, [
+        icon('risk', riesgo.color, 26),
+        h('div', { class: 'min-w-0' }, [
+          h('p', { class: 'text-[11px] font-medium truncate', style: 'color:var(--ink-secondary)' }, ['Semáforo de Riesgo']),
+          h('p', { class: 'font-semibold truncate', style: `font-size:15px;letter-spacing:-0.01em;color:${riesgo.color}` }, [riesgo.label]),
+        ]),
+      ])
+    : h('div', { class: 'card card-hover p-5 flex flex-col gap-3 animate-fade-in' }, [
+        h('div', { class: 'flex items-center justify-between' }, [
+          h('span', { class: 'text-sm font-medium', style: 'color:var(--ink-secondary)' }, ['Semáforo de Riesgo']),
+          icon('risk', riesgo.color, 38),
+        ]),
+        h('div', { class: 'flex items-center gap-2' }, [
+          h('span', { class: 'inline-block rounded-full', style: `width:14px;height:14px;background:${riesgo.color}` }),
+          h('span', { class: 'font-semibold', style: `font-size:26px;letter-spacing:-0.02em;color:${riesgo.color}` }, [riesgo.label]),
+        ]),
+        h('div', { class: 'text-xs', style: 'color:var(--ink-muted)' }, [riesgoSub]),
+      ]);
+
+  const ordered = [...cards.slice(0, 3), riesgoCard, cards[3], cards[4], cards[5]];
+
+  return h(
+    'div',
+    {
+      class: compact
+        ? 'grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-2.5'
+        : 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4',
+    },
+    ordered
+  );
 }

@@ -248,6 +248,34 @@ function buildFlowRow(label: string, kind: TreasuryRow['kind'], events: CashEven
   return { label, kind, rezagados, values, total };
 }
 
+/** Convierte las partidas digitadas a mano (Préstamo Perú / Préstamos
+ *  Terceros — ver SPECIAL_CHEQUE_ROWS) en eventos sintéticos, para que
+ *  participen del mismo cálculo (matriz, KPIs, alertas) que un cheque real
+ *  sin duplicar lógica. Solo se usan en las pestañas Flujo Diario/Semanal —
+ *  nunca se mezclan con BASE CHEQUES en las pestañas de cheques. */
+export function buildManualLoanEvents(entries: Record<string, Record<string, number>>): CashEvent[] {
+  const events: CashEvent[] = [];
+  for (const [category, byDate] of Object.entries(entries)) {
+    for (const [date, amount] of Object.entries(byDate)) {
+      if (!amount) continue;
+      events.push({
+        id: `manual-${category}-${date}`,
+        kind: 'cheque',
+        date,
+        amount,
+        counterparty: 'Ingreso manual',
+        category,
+        status: 'Manual',
+        confidence: 'confirmado',
+        source: 'MANUAL',
+        sourceSheet: 'manual',
+        meta: { estatusCobro: 'PENDIENTE' },
+      });
+    }
+  }
+  return events;
+}
+
 /**
  * Flujo de Caja en formato matriz: filas por banco + partidas de movimiento,
  * columnas por período (día o semana), con una columna "REZAGADOS" (backlog —
@@ -276,7 +304,12 @@ export function buildTreasuryMatrix(events: CashEvent[], bankAccounts: BankAccou
   for (const special of SPECIAL_CHEQUE_ROWS) {
     const matched = cheques.filter((e) => matchesSpecialRow(e, special.keywords));
     matched.forEach((e) => specialMatched.add(e.id));
-    specialRows.push(buildFlowRow(`(-) ${special.label}`, 'egreso', matched, cutoff, periods, -1));
+    const row = buildFlowRow(`(-) ${special.label}`, 'egreso', matched, cutoff, periods, -1);
+    if (special.manual) {
+      row.manual = true;
+      row.manualCategory = special.keywords[0];
+    }
+    specialRows.push(row);
   }
   const chequesRestantes = cheques.filter((e) => !specialMatched.has(e.id));
   const chequesRow = buildFlowRow('(-) CHEQUES POSFECHADOS', 'egreso', chequesRestantes, cutoff, periods, -1);

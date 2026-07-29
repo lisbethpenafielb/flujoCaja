@@ -5,9 +5,11 @@ en tiempo real **BASE CHEQUES**, **05.PROYECCION DE CARTERA** y **PAGOS FIJOS**
 desde Google Drive, y calcula el flujo de caja diario, semanal y a 30 días.
 
 No es un dashboard de Excel: es una capa de cálculo propia (motor de flujo de
-caja) sobre datos que siempre se leen en vivo desde los archivos fuente. La
-única excepción es el saldo de los 6 bancos, que Tesorería ingresa
-manualmente y que vive solo mientras dura la sesión del navegador.
+caja) sobre datos que siempre se leen en vivo desde los archivos fuente. Las
+excepciones son el saldo de los 6 bancos y las partidas Préstamo Perú /
+Préstamos Terceros (ninguna de las dos existe en los Excel fuente), que
+Tesorería ingresa manualmente y que viven solo mientras dura la sesión del
+navegador.
 
 ## Pestañas
 
@@ -15,7 +17,10 @@ manualmente y que vive solo mientras dura la sesión del navegador.
 - **Flujo Diario / Flujo Semanal** — Flujo de caja en formato matriz (filas =
   bancos + partidas de movimiento, columnas = día o semana), con columna
   REZAGADOS (backlog anterior a la fecha "Desde") y arrastre de saldo en
-  cascada, igual a la plantilla de control que ya usa Tesorería.
+  cascada, igual a la plantilla de control que ya usa Tesorería. Las filas
+  Préstamo Perú y Préstamos Terceros se digitan a mano por día en Flujo
+  Diario (esa información no existe en BASE CHEQUES); Flujo Semanal solo
+  muestra el acumulado, de solo lectura.
 - **Cheques Rezagados** — cheques con fecha anterior a hoy aún no cobrados.
   Filtros: Estado, Banco, Estatus 2, Negociación.
 - **Cheques Diarios** — todos los cheques, ordenados por fecha. Filtros:
@@ -154,12 +159,17 @@ Hallazgos que conviene corregir en el origen para un flujo de caja más preciso:
 6. La columna `DIAS ANTI` de BASE CHEQUES trae una fórmula rota (texto literal
    "ERROR"); el parser la ignora.
 
-## Saldos Bancarios (excepción del módulo)
+## Datos de ingreso manual (excepciones del módulo)
 
-Los saldos de los 6 bancos **no provienen de ningún Excel**. Tesorería los
-ingresa en la pestaña "Saldos Bancarios"; el valor vive en `sessionStorage`
-del navegador y se pierde al cerrar la pestaña — nunca se escribe en disco,
-en Excel ni se envía a ningún servidor.
+Dos cosas **no provienen de ningún Excel** y se ingresan a mano; ambas viven
+solo en `sessionStorage` del navegador y se pierden al cerrar la pestaña —
+nunca se escriben en disco, en Excel ni se envían a ningún servidor:
+
+- **Saldos de los 6 bancos** — pestaña "Saldos Bancarios".
+- **Préstamo Perú y Préstamos Terceros** — celdas editables por día en la
+  pestaña "Flujo Diario". Internamente se tratan como un cheque más (mismo
+  motor de cálculo), pero nunca se mezclan con BASE CHEQUES en las pestañas
+  de cheques (Rezagados, Diarios, Tabla) — esas son siempre 100% Excel.
 
 ## Cheques ya cobrados
 

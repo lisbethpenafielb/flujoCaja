@@ -10,6 +10,7 @@ import {
   buildChequeVendorPivot,
   buildDailyProjection,
   buildDayPeriods,
+  buildManualLoanEvents,
   buildTreasuryMatrix,
   buildWeekPeriods,
   chequesRezagados,
@@ -68,9 +69,14 @@ function render(): void {
   const main = h('main', { class: 'flex-1 px-6 py-6 flex flex-col gap-5 max-w-[1700px] w-full mx-auto' });
   root.appendChild(main);
 
-  const { dataset, bankAccounts, filters, chequeFilters } = state;
+  const { dataset, bankAccounts, filters, chequeFilters, manualLoanEntries } = state;
   const openingBalance = totalBankBalance(bankAccounts);
-  const filtered = applyFilters(dataset.events, filters);
+  // Préstamo Perú / Préstamos Terceros no vienen de ningún Excel: se digitan a
+  // mano y se mezclan aquí como eventos más, para que KPIs/alertas/matriz los
+  // reflejen igual que un cheque real. Nunca se mezclan en las pestañas de
+  // cheques (esas son, por definición, solo lo que trae BASE CHEQUES).
+  const eventsWithManual = [...dataset.events, ...buildManualLoanEvents(manualLoanEntries)];
+  const filtered = applyFilters(eventsWithManual, filters);
   const projectionDays = Math.max(1, daysBetween(filters.dateFrom, filters.dateTo) + 1);
 
   const warningsBanner = renderWarningsBanner(dataset.warnings);
@@ -90,18 +96,22 @@ function render(): void {
   } else if (activeTab === 'diario') {
     const daily = buildDailyProjection(filtered, openingBalance, filters.dateFrom, projectionDays);
     const kpis = computeKpis(daily, openingBalance);
-    main.appendChild(renderKpiCards(kpis));
+    main.appendChild(renderKpiCards(kpis, { compact: true }));
     // Sin límite inferior de fecha: los eventos anteriores a "Desde" deben
     // seguir disponibles para poder caer en la columna REZAGADOS (backlog).
-    const forMatrix = applyFilters(dataset.events, { ...filters, dateFrom: '' });
+    const forMatrix = applyFilters(eventsWithManual, { ...filters, dateFrom: '' });
     const periods = buildDayPeriods(filters.dateFrom, filters.dateTo);
     const matrix = buildTreasuryMatrix(forMatrix, bankAccounts, periods);
-    main.appendChild(renderTreasuryMatrix(matrix, 'Flujo de Caja Diario', 'Bancos + movimientos por día, con arrastre de saldo'));
+    main.appendChild(
+      renderTreasuryMatrix(matrix, 'Flujo de Caja Diario', 'Bancos + movimientos por día, con arrastre de saldo', {
+        onManualEdit: (category, date, value) => store.setManualLoanEntry(category, date, value),
+      })
+    );
   } else if (activeTab === 'semanal') {
     const daily = buildDailyProjection(filtered, openingBalance, filters.dateFrom, projectionDays);
     const kpis = computeKpis(daily, openingBalance);
-    main.appendChild(renderKpiCards(kpis));
-    const forMatrix = applyFilters(dataset.events, { ...filters, dateFrom: '' });
+    main.appendChild(renderKpiCards(kpis, { compact: true }));
+    const forMatrix = applyFilters(eventsWithManual, { ...filters, dateFrom: '' });
     const periods = buildWeekPeriods(filters.dateFrom, filters.dateTo);
     const matrix = buildTreasuryMatrix(forMatrix, bankAccounts, periods);
     main.appendChild(renderTreasuryMatrix(matrix, 'Flujo de Caja Semanal', 'Bancos + movimientos por semana, con arrastre de saldo'));

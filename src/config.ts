@@ -41,10 +41,15 @@ export const DEFAULT_BANK_ACCOUNTS: { id: string; name: string; bankName: string
 // (formato matriz), en vez de agruparse dentro de "Cheques Posfechados". El
 // emparejamiento es por palabra clave contra CATEGORIA/DETALLE del cheque —
 // ajustar aquí si Tesorería confirma otra nomenclatura en el Excel fuente.
-export const SPECIAL_CHEQUE_ROWS: { label: string; keywords: string[] }[] = [
+//
+// PRESTAMO PERÚ y PRESTAMOS TERCEROS van marcadas `manual: true`: esa
+// información no existe en ningún Excel fuente, así que sus celdas por día
+// se digitan a mano en la pestaña "Flujo Diario" (sesión del navegador,
+// igual que Saldos Bancarios) en vez de intentar detectarlas por categoría.
+export const SPECIAL_CHEQUE_ROWS: { label: string; keywords: string[]; manual?: boolean }[] = [
   { label: 'POR DEVOLVER A ALMACENERA', keywords: ['ALMACENERA'] },
-  { label: 'PRESTAMO PERÚ', keywords: ['PRESTAMO PERU', 'PRÉSTAMO PERÚ', 'PRESTAMO PERÚ'] },
-  { label: 'PRESTAMOS TERCEROS', keywords: ['PRESTAMOS TERCEROS', 'PRESTAMO TERCEROS'] },
+  { label: 'PRESTAMO PERÚ', keywords: ['PRESTAMO PERU', 'PRÉSTAMO PERÚ', 'PRESTAMO PERÚ'], manual: true },
+  { label: 'PRESTAMOS TERCEROS', keywords: ['PRESTAMOS TERCEROS', 'PRESTAMO TERCEROS'], manual: true },
 ];
 
 // Umbrales del semáforo de riesgo diario, como múltiplo del promedio de egresos

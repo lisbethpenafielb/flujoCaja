@@ -15,9 +15,30 @@ export function renderHeader(opts: {
   lastSync: Date | null;
   onSync: () => void;
   googleConfigured: boolean;
+  isDemo: boolean;
+  onExitDemo: () => void;
 }): HTMLElement {
   const meta = STATUS_META[opts.status];
   const busy = opts.status === 'authenticating' || opts.status === 'loading';
+
+  const demoBadge = opts.isDemo
+    ? h('span', { class: 'pill', style: `background:${STATUS.warning}22;color:#8a6200` }, [
+        h('span', { class: 'inline-block rounded-full', style: `width:7px;height:7px;background:${STATUS.warning}` }),
+        'Modo demostración · datos simulados',
+      ])
+    : null;
+
+  const exitDemoBtn = opts.isDemo
+    ? h(
+        'button',
+        {
+          class: 'text-sm font-medium rounded-lg px-3 py-2',
+          style: 'border:1px solid var(--gridline);color:var(--ink-secondary)',
+          onclick: opts.onExitDemo,
+        },
+        ['Salir de la demo']
+      )
+    : null;
 
   const statusPill = h(
     'span',
@@ -71,13 +92,15 @@ export function renderHeader(opts: {
         ]),
       ]),
       h('div', { class: 'flex items-center gap-3' }, [
-        opts.lastSync
+        opts.lastSync && !opts.isDemo
           ? h('span', { class: 'text-xs hidden sm:inline', style: 'color:var(--ink-muted)' }, [
               `Última sincronización: ${opts.lastSync.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}`,
             ])
           : null,
-        statusPill,
-        syncBtn,
+        demoBadge,
+        exitDemoBtn,
+        opts.isDemo ? null : statusPill,
+        opts.isDemo ? null : syncBtn,
       ]),
     ]
   );

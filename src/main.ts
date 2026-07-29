@@ -13,6 +13,7 @@ import { renderBankPanel } from './ui/bankPanel';
 import { renderEmptyState, renderWarningsBanner } from './ui/emptyState';
 import { h, mount } from './ui/dom';
 import { daysBetween } from './utils/dates';
+import { loadDemoData } from './demo/loadDemo';
 
 const app = document.getElementById('app')!;
 let activeTab: TabId = 'resumen';
@@ -35,12 +36,14 @@ function render(): void {
       lastSync: state.dataset?.loadedAt ?? null,
       onSync: () => void syncFromDrive(),
       googleConfigured,
+      isDemo: state.isDemo,
+      onExitDemo: () => store.exitDemo(),
     })
   );
 
   if (!state.dataset) {
     root.appendChild(
-      renderEmptyState(state.syncStatus, state.syncError, () => void syncFromDrive(), googleConfigured)
+      renderEmptyState(state.syncStatus, state.syncError, () => void syncFromDrive(), googleConfigured, loadDemoData)
     );
     return;
   }

@@ -10,6 +10,7 @@ interface State {
   filters: Filters;
   syncStatus: SyncStatus;
   syncError: string | null;
+  isDemo: boolean;
 }
 
 type Listener = () => void;
@@ -32,6 +33,7 @@ class Store {
     filters: defaultFilters(),
     syncStatus: 'idle',
     syncError: null,
+    isDemo: false,
   };
 
   private listeners = new Set<Listener>();
@@ -61,10 +63,18 @@ class Store {
     this.emit();
   }
 
-  setDataset(events: CashEvent[], excludedEvents: CashEvent[], warnings: string[]): void {
+  setDataset(events: CashEvent[], excludedEvents: CashEvent[], warnings: string[], isDemo = false): void {
     this.state.dataset = { events, excludedEvents, loadedAt: new Date(), warnings };
     this.state.syncStatus = 'ready';
     this.state.syncError = null;
+    this.state.isDemo = isDemo;
+    this.emit();
+  }
+
+  exitDemo(): void {
+    this.state.dataset = null;
+    this.state.syncStatus = 'idle';
+    this.state.isDemo = false;
     this.emit();
   }
 

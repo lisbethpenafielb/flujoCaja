@@ -10,6 +10,7 @@ import type {
   TreasuryMatrix,
   TreasuryPeriod,
   TreasuryRow,
+  VendorPivot,
 } from '../types';
 import { PROJECTION_DAYS, SPECIAL_CHEQUE_ROWS } from '../config';
 import {
@@ -399,4 +400,50 @@ export function buildChequesPivot(chequeEvents: CashEvent[]): ChequesPivotYear[]
     });
 
   return result;
+}
+
+/** Tabla dinámica Proveedor × Fecha: una fila por proveedor (con sus cheques
+ *  como subfilas desplegables) y una columna por fecha, igual a una tabla
+ *  dinámica de Excel con PROVEEDORES en filas y FECHAS en columnas. */
+export function buildChequeVendorPivot(events: CashEvent[]): VendorPivot {
+  const dates = [...new Set(events.map((e) => e.date))].sort();
+
+  const columnGroups: { label: string; span: number }[] = [];
+  for (const date of dates) {
+    const label = `${monthNameEs(date)} ${yearOf(date)}`;
+    const last = columnGroups[columnGroups.length - 1];
+    if (last && last.label === label) last.span++;
+    else columnGroups.push({ label, span: 1 });
+  }
+
+  const byVendor = new Map<string, CashEvent[]>();
+  for (const e of events) {
+    if (!byVendor.has(e.counterparty)) byVendor.set(e.counterparty, []);
+    byVendor.get(e.counterparty)!.push(e);
+  }
+
+  const rows = [...byVendor.entries()]
+    .sort(([a], [b]) => a.localeCompare(b, 'es'))
+    .map(([proveedor, evts]) => {
+      const totalsByDate: Record<string, number> = {};
+      for (const e of evts) {
+        totalsByDate[e.date] = (totalsByDate[e.date] ?? 0) + e.amount;
+      }
+      const cheques = [...evts]
+        .sort((a, b) => (a.date < b.date ? -1 : 1))
+        .map((e) => ({
+          id: e.id,
+          numeroCheque: String(e.meta?.numeroCheque ?? '—'),
+          date: e.date,
+          amount: e.amount,
+        }));
+      return { proveedor, total: evts.reduce((s, e) => s + e.amount, 0), totalsByDate, cheques };
+    });
+
+  const totalsByDate: Record<string, number> = {};
+  for (const date of dates) {
+    totalsByDate[date] = rows.reduce((s, r) => s + (r.totalsByDate[date] ?? 0), 0);
+  }
+
+  return { dates, columnGroups, rows, totalsByDate, grandTotal: rows.reduce((s, r) => s + r.total, 0) };
 }

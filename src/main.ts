@@ -7,6 +7,7 @@ import {
   applyFilters,
   buildAlerts,
   buildChequesPivot,
+  buildChequeVendorPivot,
   buildDailyProjection,
   buildDayPeriods,
   buildTreasuryMatrix,
@@ -18,7 +19,7 @@ import {
 import { renderHeader, renderTabs, type TabId } from './ui/shell';
 import { renderKpiCards } from './ui/kpiCards';
 import { renderTreasuryMatrix } from './ui/treasuryMatrix';
-import { renderChequeTable } from './ui/chequeTable';
+import { renderChequeVendorPivot } from './ui/chequeVendorPivot';
 import { renderChequesPivot } from './ui/chequesPivotTable';
 import { renderChequeFilterBar } from './ui/chequeFilterBar';
 import { renderAlerts } from './ui/alerts';
@@ -110,7 +111,7 @@ function render(): void {
     const shown = applyChequeFilters(baseRezagados, chequeFilters.rezagados);
     main.appendChild(renderChequeFilterBar('rezagados', baseRezagados, chequeFilters.rezagados, ['estado', 'banco', 'estatus2', 'negociacion']));
     main.appendChild(
-      renderChequeTable(shown, {
+      renderChequeVendorPivot(buildChequeVendorPivot(shown), {
         title: 'Cheques Rezagados',
         subtitle: `Cheques con fecha anterior a hoy (${todayISO()}) aún no cobrados`,
         emptyLabel: 'No hay cheques rezagados con los filtros seleccionados.',
@@ -123,9 +124,9 @@ function render(): void {
       renderChequeFilterBar('diarios', allCheques, chequeFilters.diarios, ['estado', 'mes', 'banco', 'negociacion', 'anio', 'semana'])
     );
     main.appendChild(
-      renderChequeTable(shown, {
+      renderChequeVendorPivot(buildChequeVendorPivot(shown), {
         title: 'Cheques Diarios',
-        subtitle: 'Todos los cheques, ordenados por fecha',
+        subtitle: 'Todos los cheques',
         emptyLabel: 'No hay cheques con los filtros seleccionados.',
       })
     );

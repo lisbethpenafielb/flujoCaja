@@ -139,3 +139,31 @@ export interface ChequesPivotYear {
   total: number;
   months: ChequesPivotMonth[];
 }
+
+// --- Tabla dinámica Proveedor × Fecha (Cheques Rezagados / Cheques Diarios) -
+export interface VendorPivotCheque {
+  id: string;
+  numeroCheque: string;
+  date: string;
+  amount: number;
+}
+
+export interface VendorPivotRow {
+  proveedor: string;
+  total: number;
+  totalsByDate: Record<string, number>;
+  cheques: VendorPivotCheque[];
+}
+
+export interface VendorPivotColumnGroup {
+  label: string;
+  span: number;
+}
+
+export interface VendorPivot {
+  dates: string[];
+  columnGroups: VendorPivotColumnGroup[];
+  rows: VendorPivotRow[];
+  totalsByDate: Record<string, number>;
+  grandTotal: number;
+}

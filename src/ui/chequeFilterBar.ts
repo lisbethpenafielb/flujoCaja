@@ -1,7 +1,6 @@
 import type { CashEvent, ChequeFilters } from '../types';
 import { store, type ChequeFilterScope } from '../state/store';
 import { monthNameEs, yearOf, isoWeekLabel } from '../utils/dates';
-import { chipGroupFromValues } from './filterChips';
 import { h } from './dom';
 
 export type ChequeFilterDim = 'estado' | 'banco' | 'estatus2' | 'negociacion' | 'mes' | 'anio' | 'semana';
@@ -15,6 +14,12 @@ const DIM_LABEL: Record<ChequeFilterDim, string> = {
   anio: 'Año',
   semana: 'Semana',
 };
+
+function uniqueSorted(values: (string | undefined)[]): string[] {
+  return [...new Set(values.filter((v): v is string => Boolean(v && v.trim())))].sort((a, b) =>
+    a.localeCompare(b, 'es')
+  );
+}
 
 function valuesFor(dim: ChequeFilterDim, events: CashEvent[]): (string | undefined)[] {
   switch (dim) {
@@ -35,6 +40,24 @@ function valuesFor(dim: ChequeFilterDim, events: CashEvent[]): (string | undefin
   }
 }
 
+function select(label: string, value: string, options: string[], onChange: (v: string) => void): HTMLElement {
+  const sel = h('select', {
+    class: 'text-sm rounded-lg px-2.5 py-1.5 outline-none',
+    style: 'border:1px solid var(--gridline);background:var(--surface);color:var(--ink-primary);min-width:160px',
+    onchange: (e: Event) => onChange((e.target as HTMLSelectElement).value),
+  }) as HTMLSelectElement;
+  sel.appendChild(h('option', { value: 'todos' }, ['Todos']));
+  for (const opt of options) {
+    const o = h('option', { value: opt }, [opt]) as HTMLOptionElement;
+    if (opt === value) o.selected = true;
+    sel.appendChild(o);
+  }
+  return h('label', { class: 'flex flex-col gap-1' }, [
+    h('span', { class: 'text-[11px] font-semibold uppercase tracking-wide', style: 'color:var(--ink-muted)' }, [label]),
+    sel,
+  ]);
+}
+
 export function renderChequeFilterBar(
   scope: ChequeFilterScope,
   events: CashEvent[],
@@ -42,23 +65,18 @@ export function renderChequeFilterBar(
   dims: ChequeFilterDim[]
 ): HTMLElement {
   const groups = dims.map((dim) =>
-    chipGroupFromValues({
-      label: DIM_LABEL[dim],
-      active: filters[dim],
-      values: valuesFor(dim, events),
-      onSelect: (v) => store.setChequeFilters(scope, { [dim]: v }),
-    })
+    select(DIM_LABEL[dim], filters[dim], uniqueSorted(valuesFor(dim, events)), (v) => store.setChequeFilters(scope, { [dim]: v }))
   );
 
   const resetBtn = h(
     'button',
     {
-      class: 'text-xs font-medium rounded-lg px-3 py-1.5 self-start',
+      class: 'text-xs font-medium rounded-lg px-3 py-2 self-end',
       style: 'color:var(--ink-secondary);border:1px solid var(--gridline)',
       onclick: () => store.resetChequeFilters(scope),
     },
-    ['Limpiar']
+    ['Limpiar filtros']
   );
 
-  return h('div', { class: 'card p-4 flex flex-wrap items-start gap-5' }, [...groups, resetBtn]);
+  return h('div', { class: 'card p-4 flex flex-wrap items-end gap-3' }, [...groups, resetBtn]);
 }

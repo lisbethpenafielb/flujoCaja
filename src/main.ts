@@ -175,7 +175,7 @@ function render(): void {
     const allCheques = dataset.events.filter((e) => e.kind === 'cheque').sort((a, b) => (a.date < b.date ? -1 : 1));
     const shown = applyChequeFilters(allCheques, chequeFilters.diarios);
     main.appendChild(
-      renderChequeFilterBar('diarios', allCheques, chequeFilters.diarios, ['estado', 'banco', 'mes', 'anio', 'negociacion'])
+      renderChequeFilterBar('diarios', allCheques, chequeFilters.diarios, ['estado', 'banco', 'dia', 'mes', 'anio', 'negociacion'])
     );
     main.appendChild(
       renderChequeVendorPivot(buildChequeVendorPivot(shown), {

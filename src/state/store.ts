@@ -46,6 +46,7 @@ function defaultChequeFilters(): ChequeFilters {
     negociacion: 'todos',
     mes: 'todos',
     anio: 'todos',
+    dia: '',
   };
 }
 

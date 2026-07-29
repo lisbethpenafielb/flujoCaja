@@ -383,6 +383,7 @@ export function applyChequeFilters(events: CashEvent[], filters: ChequeFilters):
     if (filters.negociacion !== 'todos' && String(e.meta?.negociacion ?? 'Sin negociación') !== filters.negociacion) return false;
     if (filters.mes !== 'todos' && chequeMes(e) !== filters.mes) return false;
     if (filters.anio !== 'todos' && chequeAnio(e) !== filters.anio) return false;
+    if (filters.dia && e.date !== filters.dia) return false;
     return true;
   });
 }

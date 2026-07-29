@@ -92,6 +92,8 @@ export interface ChequeFilters {
   negociacion: string | 'todos';
   mes: string | 'todos';
   anio: string | 'todos';
+  /** Fecha exacta (YYYY-MM-DD); cadena vacía = sin filtrar. */
+  dia: string;
 }
 
 // --- Flujo de Caja en formato matriz (filas = partidas, columnas = período) -

@@ -2,23 +2,19 @@ import type { CashEvent, ChequeFilters } from '../types';
 import { store, type ChequeFilterScope } from '../state/store';
 import { chequeMes, chequeAnio } from '../data/engine';
 import { h } from './dom';
+import { filterResetButton, filterSelect, uniqueSorted } from './filterControls';
+import type { IconName } from './icons';
 
 export type ChequeFilterDim = 'estado' | 'banco' | 'estatus2' | 'negociacion' | 'mes' | 'anio';
 
-const DIM_LABEL: Record<ChequeFilterDim, string> = {
-  estado: 'Estado',
-  banco: 'Banco',
-  estatus2: 'Estatus 2',
-  negociacion: 'Negociación',
-  mes: 'Mes',
-  anio: 'Año',
+const DIM_META: Record<ChequeFilterDim, { label: string; icon: IconName }> = {
+  estado: { label: 'Estado', icon: 'flag' },
+  banco: { label: 'Banco', icon: 'bank' },
+  estatus2: { label: 'Estatus 2', icon: 'checkCircle' },
+  negociacion: { label: 'Negociación', icon: 'tag' },
+  mes: { label: 'Mes', icon: 'calendar' },
+  anio: { label: 'Año', icon: 'calendar' },
 };
-
-function uniqueSorted(values: (string | undefined)[]): string[] {
-  return [...new Set(values.filter((v): v is string => Boolean(v && v.trim())))].sort((a, b) =>
-    a.localeCompare(b, 'es')
-  );
-}
 
 function valuesFor(dim: ChequeFilterDim, events: CashEvent[]): (string | undefined)[] {
   switch (dim) {
@@ -37,43 +33,20 @@ function valuesFor(dim: ChequeFilterDim, events: CashEvent[]): (string | undefin
   }
 }
 
-function select(label: string, value: string, options: string[], onChange: (v: string) => void): HTMLElement {
-  const sel = h('select', {
-    class: 'text-sm rounded-lg px-2.5 py-1.5 outline-none',
-    style: 'border:1px solid var(--gridline);background:var(--surface);color:var(--ink-primary);min-width:160px',
-    onchange: (e: Event) => onChange((e.target as HTMLSelectElement).value),
-  }) as HTMLSelectElement;
-  sel.appendChild(h('option', { value: 'todos' }, ['Todos']));
-  for (const opt of options) {
-    const o = h('option', { value: opt }, [opt]) as HTMLOptionElement;
-    if (opt === value) o.selected = true;
-    sel.appendChild(o);
-  }
-  return h('label', { class: 'flex flex-col gap-1' }, [
-    h('span', { class: 'text-[11px] font-semibold uppercase tracking-wide', style: 'color:var(--ink-muted)' }, [label]),
-    sel,
-  ]);
-}
-
 export function renderChequeFilterBar(
   scope: ChequeFilterScope,
   events: CashEvent[],
   filters: ChequeFilters,
   dims: ChequeFilterDim[]
 ): HTMLElement {
-  const groups = dims.map((dim) =>
-    select(DIM_LABEL[dim], filters[dim], uniqueSorted(valuesFor(dim, events)), (v) => store.setChequeFilters(scope, { [dim]: v }))
-  );
+  const groups = dims.map((dim) => {
+    const meta = DIM_META[dim];
+    return filterSelect(meta.icon, meta.label, filters[dim], uniqueSorted(valuesFor(dim, events)), (v) => store.setChequeFilters(scope, { [dim]: v }));
+  });
 
-  const resetBtn = h(
-    'button',
-    {
-      class: 'text-xs font-medium rounded-lg px-3 py-2 self-end',
-      style: 'color:var(--ink-secondary);border:1px solid var(--gridline)',
-      onclick: () => store.resetChequeFilters(scope),
-    },
-    ['Limpiar filtros']
-  );
-
-  return h('div', { class: 'card p-4 flex flex-wrap items-end gap-3' }, [...groups, resetBtn]);
+  return h('div', { class: 'card px-4 py-2.5 flex flex-wrap items-center gap-2' }, [
+    h('span', { class: 'text-[11px] font-semibold uppercase tracking-wide mr-1', style: 'color:var(--ink-muted)' }, ['Filtros']),
+    ...groups,
+    filterResetButton(() => store.resetChequeFilters(scope)),
+  ]);
 }

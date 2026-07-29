@@ -1,38 +1,36 @@
-// Paleta validada (ver skill dataviz) — se referencia por rol, nunca se improvisa
-// un color nuevo. Categorías en orden fijo: nunca se reordenan según el filtro activo.
-export const CATEGORICAL = [
-  '#2a78d6', // 1 azul — Cobranza / serie primaria
-  '#eb6834', // 2 naranja — Cheques
-  '#1baf7a', // 3 aqua — Pagos fijos
-  '#eda100', // 4 amarillo
-  '#e87ba4', // 5 magenta
-  '#008300', // 6 verde
-  '#4a3aa7', // 7 violeta
-  '#e34948', // 8 rojo
-];
+// Paleta cerrada de la identidad TCI Corporate Analytics — nunca introducir
+// un tono fuera de esta lista. Se referencia por rol en todos los componentes.
+export const BRAND = {
+  primary: '#0F4C81',
+  primaryDark: '#0B3A63',
+  secondary: '#2E7D32',
+};
 
 export const STATUS = {
-  good: '#0ca30c',
-  warning: '#fab219',
-  serious: '#ec835a',
-  critical: '#d03b3b',
+  good: '#2E7D32',
+  warning: '#F9A825',
+  critical: '#C62828',
 };
 
 export const INK = {
-  primary: '#0b0b0b',
-  secondary: '#52514e',
-  muted: '#898781',
-  gridline: '#e1e0d9',
-  baseline: '#c3c2b7',
+  primary: '#1F2937',
+  secondary: '#6B7280',
+  muted: '#9AA3AF',
+  gridline: '#E5E7EB',
+  baseline: '#D1D5DB',
 };
 
 export const SURFACE = {
-  chart: '#fcfcfb',
-  page: '#f9f9f7',
+  card: '#FFFFFF',
+  page: '#F4F6F9',
 };
 
-export const FLOW_COLORS = {
-  cobranza: CATEGORICAL[0],
-  cheques: CATEGORICAL[1],
-  pagosFijos: CATEGORICAL[2],
+// Único set de series usado por el gráfico del dashboard: la paleta del
+// cliente solo trae primario/secundario/advertencia/error, así que las
+// series de la app se limitan a esos cuatro roles (nunca colores ad-hoc).
+export const SERIES = {
+  saldo: BRAND.primary,
+  positivo: STATUS.good,
+  negativo: STATUS.critical,
+  proyeccion: STATUS.warning,
 };

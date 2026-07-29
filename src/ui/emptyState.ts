@@ -1,5 +1,7 @@
 import type { SyncStatus } from '../state/store';
 import { h } from './dom';
+import { icon } from './icons';
+import { STATUS } from './palette';
 
 export function renderEmptyState(
   status: SyncStatus,
@@ -10,13 +12,15 @@ export function renderEmptyState(
 ): HTMLElement {
   if (status === 'error') {
     return h('div', { class: 'card p-10 flex flex-col items-center text-center gap-3 max-w-xl mx-auto mt-10' }, [
-      h('span', {
-        class: 'inline-flex items-center justify-center rounded-full',
-        style: 'width:48px;height:48px;background:rgba(208,59,59,0.10);color:#d03b3b',
-        html:
-          '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>',
-      }),
-      h('h2', { class: 'font-semibold', style: 'font-size:16px' }, ['No se pudo sincronizar']),
+      h(
+        'span',
+        {
+          class: 'inline-flex items-center justify-center rounded-full',
+          style: `width:48px;height:48px;background:${STATUS.critical}18;color:${STATUS.critical}`,
+        },
+        [icon('alertTriangle', { size: 24, strokeWidth: 1.75 })]
+      ),
+      h('h2', { class: 'font-semibold', style: 'font-size:16px;color:var(--ink-primary)' }, ['No se pudo sincronizar']),
       h('p', { class: 'text-sm', style: 'color:var(--ink-secondary)' }, [error ?? 'Error desconocido']),
       h(
         'button',
@@ -31,13 +35,12 @@ export function renderEmptyState(
   }
 
   return h('div', { class: 'card p-10 flex flex-col items-center text-center gap-3 max-w-xl mx-auto mt-10' }, [
-    h('span', {
-      class: 'inline-flex items-center justify-center rounded-full',
-      style: 'width:48px;height:48px;background:rgba(42,120,214,0.10);color:#2a78d6',
-      html:
-        '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.36"/><path d="M21 4v6h-6"/></svg>',
-    }),
-    h('h2', { class: 'font-semibold', style: 'font-size:16px' }, ['Conecta Google Drive para comenzar']),
+    h(
+      'span',
+      { class: 'inline-flex items-center justify-center rounded-full', style: 'width:48px;height:48px;background:var(--brand-tint);color:var(--brand)' },
+      [icon('refresh', { size: 22, strokeWidth: 1.75 })]
+    ),
+    h('h2', { class: 'font-semibold', style: 'font-size:16px;color:var(--ink-primary)' }, ['Conecta Google Drive para comenzar']),
     h('p', { class: 'text-sm', style: 'color:var(--ink-secondary)' }, [
       'El dashboard lee en vivo BASE CHEQUES, PROYECCION DE CARTERA y PAGOS FIJOS directamente desde tu Drive. Ningún dato se ingresa manualmente aquí.',
     ]),
@@ -72,7 +75,7 @@ export function renderEmptyState(
 
 export function renderWarningsBanner(warnings: string[]): HTMLElement | null {
   if (warnings.length === 0) return null;
-  return h('div', { class: 'card p-4 flex flex-col gap-1.5', style: 'border-color:rgba(250,178,25,0.35);background:rgba(250,178,25,0.06)' }, [
+  return h('div', { class: 'card p-4 flex flex-col gap-1.5', style: `border-color:${STATUS.warning}59;background:${STATUS.warning}0f` }, [
     h('p', { class: 'text-xs font-semibold uppercase tracking-wide', style: 'color:#8a6200' }, ['Avisos del modelo de datos']),
     ...warnings.map((w) => h('p', { class: 'text-xs', style: 'color:var(--ink-secondary)' }, [`• ${w}`])),
   ]);

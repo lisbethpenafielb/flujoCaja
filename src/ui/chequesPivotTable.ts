@@ -35,7 +35,7 @@ export function renderChequesPivot(pivot: ChequesPivotYear[]): HTMLElement {
     return h(
       'div',
       {
-        class: `flex items-center justify-between px-3 py-2.5 border-b ${opts.onClick ? 'cursor-pointer' : ''}`,
+        class: `flex items-center justify-between px-3 py-2.5 border-b ${opts.onClick ? 'tm-row cursor-pointer' : ''}`,
         style: `border-color:var(--gridline);padding-left:${12 + opts.depth * 22}px;background:${
           opts.depth === 0 ? 'var(--page)' : 'var(--surface)'
         }`,

@@ -18,17 +18,22 @@ import {
   totalBankBalance,
 } from './data/engine';
 import { renderHeader, renderTabs, type TabId } from './ui/shell';
-import { renderKpiCards } from './ui/kpiCards';
+import { computeTrend, renderKpiCards } from './ui/kpiCards';
+import { renderRiskCard } from './ui/riskCard';
+import { renderDashboardChart } from './ui/dashboardChart';
 import { renderTreasuryMatrix } from './ui/treasuryMatrix';
+import { renderWeeklySummaryCards } from './ui/weeklySummaryCards';
+import { renderRezagadosCards } from './ui/rezagadosCards';
 import { renderChequeVendorPivot } from './ui/chequeVendorPivot';
 import { renderChequesPivot } from './ui/chequesPivotTable';
 import { renderChequeFilterBar } from './ui/chequeFilterBar';
 import { renderAlerts } from './ui/alerts';
 import { renderFilters } from './ui/filters';
 import { renderBankPanel } from './ui/bankPanel';
+import { renderConfigPanel } from './ui/configPanel';
 import { renderEmptyState, renderWarningsBanner } from './ui/emptyState';
 import { h, mount } from './ui/dom';
-import { daysBetween, todayISO } from './utils/dates';
+import { addDays, daysBetween, todayISO } from './utils/dates';
 import { loadDemoData } from './demo/loadDemo';
 
 const app = document.getElementById('app')!;
@@ -83,7 +88,8 @@ function render(): void {
   if (warningsBanner && activeTab === 'resumen') main.appendChild(warningsBanner);
 
   const CHEQUE_TABS: TabId[] = ['rezagados', 'chequesDiarios', 'tablaCheques'];
-  if (activeTab !== 'bancos' && !CHEQUE_TABS.includes(activeTab)) {
+  const NO_FILTER_TABS: TabId[] = ['bancos', 'configuracion'];
+  if (!NO_FILTER_TABS.includes(activeTab) && !CHEQUE_TABS.includes(activeTab)) {
     main.appendChild(renderFilters(dataset.events, filters));
   }
 
@@ -91,8 +97,36 @@ function render(): void {
     const daily = buildDailyProjection(filtered, openingBalance, filters.dateFrom, projectionDays);
     const kpis = computeKpis(daily, openingBalance);
     const alerts = buildAlerts(daily, filtered);
-    main.appendChild(renderKpiCards(kpis));
-    main.appendChild(renderAlerts(alerts));
+    const negativeDays = daily.filter((d) => d.closingBalance < 0).length;
+
+    // Comparación contra el período previo de igual longitud: se reutiliza
+    // buildDailyProjection/computeKpis tal cual (misma lógica, sin tocar
+    // engine.ts), solo con una ventana de fechas distinta. Todo lo que no
+    // varía con la fecha (ej. saldo bancario manual) queda igual en ambas
+    // corridas, así que ahí no se muestra un porcentaje inventado.
+    const forComparison = applyFilters(eventsWithManual, { ...filters, dateFrom: '', dateTo: '' });
+    const previousStart = addDays(filters.dateFrom, -projectionDays);
+    const previousDaily = buildDailyProjection(forComparison, openingBalance, previousStart, projectionDays);
+    const previousKpis = computeKpis(previousDaily, openingBalance);
+    const cobranzaTrend = computeTrend(kpis.cobranzaEsperada, previousKpis.cobranzaEsperada, 'vs período anterior', 'up');
+    // Mismo universo de cheques que ya contribuyó a kpis.chequesProgramados
+    // (DailyBucket.events ya viene filtrado por buildDailyProjection).
+    const chequesPendientes = daily.reduce((n, d) => n + d.events.filter((e) => e.kind === 'cheque').length, 0);
+
+    main.appendChild(renderKpiCards(kpis, { extras: { cobranzaTrend, chequesPendientes } }));
+    main.appendChild(renderRiskCard(kpis, negativeDays));
+    main.appendChild(
+      h('div', { class: 'grid grid-cols-1 xl:grid-cols-[7fr_3fr] gap-4 items-start' }, [
+        h('div', { class: 'card p-5' }, [
+          h('div', { class: 'mb-4' }, [
+            h('h3', { class: 'font-semibold', style: 'font-size:15px;color:var(--ink-primary)' }, ['Evolución Proyectada del Flujo de Caja']),
+            h('p', { class: 'text-xs', style: 'color:var(--ink-muted)' }, [`Próximos ${projectionDays} días, saldo de cierre diario`]),
+          ]),
+          renderDashboardChart(daily),
+        ]),
+        renderAlerts(alerts, { compact: true, title: 'Alertas prioritarias' }),
+      ])
+    );
   } else if (activeTab === 'diario') {
     const daily = buildDailyProjection(filtered, openingBalance, filters.dateFrom, projectionDays);
     const kpis = computeKpis(daily, openingBalance);
@@ -111,8 +145,9 @@ function render(): void {
     const daily = buildDailyProjection(filtered, openingBalance, filters.dateFrom, projectionDays);
     const kpis = computeKpis(daily, openingBalance);
     main.appendChild(renderKpiCards(kpis, { compact: true }));
-    const forMatrix = applyFilters(eventsWithManual, { ...filters, dateFrom: '' });
     const periods = buildWeekPeriods(filters.dateFrom, filters.dateTo);
+    main.appendChild(renderWeeklySummaryCards(daily, periods));
+    const forMatrix = applyFilters(eventsWithManual, { ...filters, dateFrom: '' });
     const matrix = buildTreasuryMatrix(forMatrix, bankAccounts, periods);
     main.appendChild(renderTreasuryMatrix(matrix, 'Flujo de Caja Semanal', 'Bancos + movimientos por semana, con arrastre de saldo'));
   } else if (activeTab === 'rezagados') {
@@ -121,8 +156,7 @@ function render(): void {
     const shown = applyChequeFilters(baseRezagados, chequeFilters.rezagados);
     main.appendChild(renderChequeFilterBar('rezagados', baseRezagados, chequeFilters.rezagados, ['estado', 'banco', 'estatus2', 'negociacion']));
     main.appendChild(
-      renderChequeVendorPivot(buildChequeVendorPivot(shown), {
-        title: 'Cheques Rezagados',
+      renderRezagadosCards(shown, {
         subtitle: `Cheques con fecha anterior a hoy (${todayISO()}) aún no cobrados`,
         emptyLabel: 'No hay cheques rezagados con los filtros seleccionados.',
       })
@@ -150,6 +184,8 @@ function render(): void {
   } else if (activeTab === 'alertas') {
     const daily = buildDailyProjection(filtered, openingBalance, filters.dateFrom, projectionDays);
     main.appendChild(renderAlerts(buildAlerts(daily, filtered)));
+  } else if (activeTab === 'configuracion') {
+    main.appendChild(renderConfigPanel());
   }
 
   const footer = h('footer', { class: 'px-6 py-4 text-xs text-center', style: 'color:var(--ink-muted)' }, [

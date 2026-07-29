@@ -2,6 +2,7 @@ import type { VendorPivot } from '../types';
 import { dayOfMonth } from '../utils/dates';
 import { formatMoney } from '../utils/format';
 import { h } from './dom';
+import { BRAND } from './palette';
 
 const CHEVRON =
   '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
@@ -40,7 +41,11 @@ export function renderChequeVendorPivot(pivot: VendorPivot, opts: { title: strin
       tbody.appendChild(
         h(
           'tr',
-          { class: 'border-b cursor-pointer', style: 'border-color:var(--gridline);background:var(--page)', onclick: () => toggle(row.proveedor) },
+          {
+            class: 'tm-row border-b cursor-pointer',
+            style: 'border-color:var(--gridline);background:var(--page)',
+            onclick: () => toggle(row.proveedor),
+          },
           [
             td(row.proveedor, { align: 'left', bold: true, sticky: true }),
             ...pivot.dates.map((d) => td(fmt(row.totalsByDate[d]))),
@@ -91,7 +96,7 @@ export function renderChequeVendorPivot(pivot: VendorPivot, opts: { title: strin
         {
           colspan: g.span,
           class: 'sticky top-0 text-xs font-semibold uppercase tracking-wide px-3 py-1.5 text-center whitespace-nowrap',
-          style: 'background:#0f2942;color:#fff;border-left:1px solid rgba(255,255,255,0.15)',
+          style: `background:${BRAND.primaryDark};color:#fff;border-left:1px solid rgba(255,255,255,0.15)`,
         },
         [g.label]
       )
@@ -122,7 +127,7 @@ export function renderChequeVendorPivot(pivot: VendorPivot, opts: { title: strin
       'th',
       {
         class: 'text-xs font-semibold uppercase tracking-wide px-3 py-2 text-right whitespace-nowrap',
-        style: 'top:33px;position:sticky;background:#e7e6e2;color:var(--ink-secondary);border-bottom:1px solid var(--gridline)',
+        style: 'top:33px;position:sticky;background:#e9edf2;color:var(--ink-secondary);border-bottom:1px solid var(--gridline)',
       },
       ['Total general']
     ),

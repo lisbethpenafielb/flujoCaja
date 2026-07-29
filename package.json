@@ -15,7 +15,6 @@
     "vite": "^8.1.1"
   },
   "dependencies": {
-    "chart.js": "^4.5.1",
     "xlsx": "^0.18.5"
   }
 }

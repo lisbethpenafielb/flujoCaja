@@ -1,4 +1,4 @@
-import type { BankAccount, CashEvent } from '../types';
+import type { CashEvent } from '../types';
 import { addDays, todayISO } from '../utils/dates';
 
 // Datos SIMULADOS para revisar diseño, navegación y funcionalidad sin depender
@@ -43,19 +43,53 @@ const CLIENTES_EXCLUIDOS = [
   { nombre: 'EDESA SA', estatus: 'POR SOLUCIONAR' },
 ];
 
+const BANCOS = ['PICHINCHA', 'PRODUBANCO', 'GUAYAQUIL', 'AUSTRO', 'INTERNACIONAL', 'LOJA'];
+const NEGOCIACIONES = ['SIL-BEL', 'JC-MT', 'AR-PP', 'SIN NEGOCIACION'];
+const ESTADOS = ['ENTREGADO', 'PAGADO', 'PROTESTADO'];
+
 function pick<T>(arr: T[], i: number): T {
   return arr[i % arr.length];
 }
 
 export function buildDemoBankAccounts(): { id: string; balance: number }[] {
   return [
-    { id: 'cta-01', balance: 18500 },
-    { id: 'cta-02', balance: 9200 },
-    { id: 'cta-03', balance: 6100 },
-    { id: 'cta-05', balance: 4300 },
-    { id: 'cta-07', balance: 2650 },
-    { id: 'cta-11', balance: 1100 },
+    { id: 'pichincha', balance: 18500 },
+    { id: 'produbanco', balance: 9200 },
+    { id: 'guayaquil', balance: 6100 },
+    { id: 'austro', balance: 4300 },
+    { id: 'internacional', balance: 2650 },
+    { id: 'loja', balance: 1100 },
   ];
+}
+
+function makeCheque(opts: {
+  id: number;
+  date: string;
+  proveedor: { nombre: string; categoria: string };
+  amount: number;
+  cobrado: boolean;
+}): CashEvent {
+  const { id, date, proveedor, amount, cobrado } = opts;
+  return {
+    id: `demo-cheque-${id}`,
+    kind: 'cheque',
+    date,
+    amount,
+    counterparty: proveedor.nombre,
+    category: proveedor.categoria,
+    status: pick(ESTADOS, id),
+    confidence: 'confirmado',
+    bank: pick(BANCOS, id),
+    source: 'BASE CHEQUES',
+    sourceSheet: 'demo',
+    meta: {
+      numeroCheque: String(636000 + id),
+      firmante: 'SIL-BEL',
+      negociacion: pick(NEGOCIACIONES, id + 1),
+      estatusCobro: cobrado ? 'COBRADO' : 'PENDIENTE',
+      fechaCobro: cobrado ? date : undefined,
+    },
+  };
 }
 
 export function buildDemoEvents(): { events: CashEvent[]; warnings: string[] } {
@@ -63,29 +97,36 @@ export function buildDemoEvents(): { events: CashEvent[]; warnings: string[] } {
   const events: CashEvent[] = [];
   let id = 0;
 
+  // Historial de cheques (para que "Cheques Rezagados" y la "Tabla de Cheques"
+  // muestren varios meses/años en su pivote Año > Mes > Día).
+  const historicOffsets = [-410, -395, -370, -220, -205, -190, -60, -45, -30, -20, -12, -6, -3, -1];
+  for (const offset of historicOffsets) {
+    const date = addDays(today, offset);
+    const proveedor = pick(PROVEEDORES_CHEQUES, id);
+    const cobrado = rand() > 0.35;
+    events.push(makeCheque({ id: id++, date, proveedor, amount: Math.round((300 + rand() * 3800) * 100) / 100, cobrado }));
+  }
+
+  // Cheques categorías especiales (para ver las filas POR DEVOLVER A
+  // ALMACENERA / PRESTAMO PERÚ / PRESTAMOS TERCEROS en el Flujo de Caja).
+  events.push(
+    makeCheque({ id: id++, date: addDays(today, -8), proveedor: { nombre: 'ALMACENERA GUAYAQUIL S.A.', categoria: 'POR DEVOLVER A ALMACENERA' }, amount: 2200, cobrado: false }),
+    makeCheque({ id: id++, date: addDays(today, 9), proveedor: { nombre: 'INVERSIONES LIMA PERU', categoria: 'PRESTAMO PERU' }, amount: 5400, cobrado: false }),
+    makeCheque({ id: id++, date: addDays(today, 17), proveedor: { nombre: 'VARIOS TERCEROS', categoria: 'PRESTAMOS TERCEROS' }, amount: 1800, cobrado: false })
+  );
+
   for (let i = 0; i < 45; i++) {
     const date = addDays(today, i);
 
-    // Cheques: 2-3 por semana, con una ráfaga fuerte en la semana 3 para forzar
-    // un quiebre de saldo y así poder ver el semáforo en rojo/amarillo en la demo.
+    // Cheques futuros: 2-3 por semana, con una ráfaga fuerte en la semana 3
+    // para forzar un quiebre de saldo y así ver el semáforo en rojo/amarillo.
     const semana3 = i >= 15 && i <= 21;
     if (i % 2 === 0 || semana3) {
       const n = semana3 ? 2 : 1;
       for (let k = 0; k < n; k++) {
-        const p = pick(PROVEEDORES_CHEQUES, id + k);
-        events.push({
-          id: `demo-cheque-${id++}`,
-          kind: 'cheque',
-          date,
-          amount: Math.round((semana3 ? 3500 + rand() * 6000 : 400 + rand() * 3200) * 100) / 100,
-          counterparty: p.nombre,
-          category: p.categoria,
-          status: 'ENTREGADO',
-          confidence: 'confirmado',
-          bank: 'LOJA',
-          source: 'BASE CHEQUES',
-          sourceSheet: 'demo',
-        });
+        const proveedor = pick(PROVEEDORES_CHEQUES, id + k);
+        const amount = Math.round((semana3 ? 3500 + rand() * 6000 : 400 + rand() * 3200) * 100) / 100;
+        events.push(makeCheque({ id: id++, date, proveedor, amount, cobrado: false }));
       }
     }
 
@@ -148,9 +189,3 @@ export function buildDemoEvents(): { events: CashEvent[]; warnings: string[] } {
 
   return { events, warnings };
 }
-
-export function applyDemoBankBalances(setBalance: (id: string, balance: number) => void): void {
-  for (const acc of buildDemoBankAccounts()) setBalance(acc.id, acc.balance);
-}
-
-export type { BankAccount };

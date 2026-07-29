@@ -1,13 +1,19 @@
-import type { BankAccount, CashEvent, Filters, LoadedDataset } from '../types';
+import type { BankAccount, CashEvent, ChequeFilters, Filters, LoadedDataset } from '../types';
 import { loadBankAccounts, saveBankAccounts } from './bankAccounts';
 import { todayISO, addDays } from '../utils/dates';
 
 export type SyncStatus = 'idle' | 'authenticating' | 'loading' | 'ready' | 'error';
 
+export type ChequeFilterScope = 'rezagados' | 'diarios' | 'tabla';
+
 interface State {
   bankAccounts: BankAccount[];
   dataset: LoadedDataset | null;
   filters: Filters;
+  // Cada pestaña de cheques tiene su propio estado de filtros: comparten uno
+  // solo produciría filtrado "fantasma" (un filtro puesto en una pestaña
+  // afectando silenciosamente a otra que no muestra ese control).
+  chequeFilters: Record<ChequeFilterScope, ChequeFilters>;
   syncStatus: SyncStatus;
   syncError: string | null;
   isDemo: boolean;
@@ -26,11 +32,28 @@ function defaultFilters(): Filters {
   };
 }
 
+function defaultChequeFilters(): ChequeFilters {
+  return {
+    estado: 'todos',
+    banco: 'todos',
+    estatus2: 'todos',
+    negociacion: 'todos',
+    mes: 'todos',
+    anio: 'todos',
+    semana: 'todos',
+  };
+}
+
 class Store {
   private state: State = {
     bankAccounts: loadBankAccounts(),
     dataset: null,
     filters: defaultFilters(),
+    chequeFilters: {
+      rezagados: defaultChequeFilters(),
+      diarios: defaultChequeFilters(),
+      tabla: defaultChequeFilters(),
+    },
     syncStatus: 'idle',
     syncError: null,
     isDemo: false,
@@ -85,6 +108,19 @@ class Store {
 
   resetFilters(): void {
     this.state.filters = defaultFilters();
+    this.emit();
+  }
+
+  setChequeFilters(scope: ChequeFilterScope, partial: Partial<ChequeFilters>): void {
+    this.state.chequeFilters = {
+      ...this.state.chequeFilters,
+      [scope]: { ...this.state.chequeFilters[scope], ...partial },
+    };
+    this.emit();
+  }
+
+  resetChequeFilters(scope: ChequeFilterScope): void {
+    this.state.chequeFilters = { ...this.state.chequeFilters, [scope]: defaultChequeFilters() };
     this.emit();
   }
 }

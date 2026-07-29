@@ -2,17 +2,45 @@ import type {
   BankAccount,
   CashAlert,
   CashEvent,
+  ChequeFilters,
+  ChequesPivotYear,
   DailyBucket,
   Filters,
   Kpis,
-  WeeklyBucket,
+  TreasuryMatrix,
+  TreasuryPeriod,
+  TreasuryRow,
 } from '../types';
-import { PROJECTION_DAYS } from '../config';
-import { addDays, formatDateEs, todayISO, weekStart } from '../utils/dates';
+import { PROJECTION_DAYS, SPECIAL_CHEQUE_ROWS } from '../config';
+import {
+  addDays,
+  daysBetween,
+  formatDateEs,
+  formatDateLongEs,
+  isoWeekLabel,
+  monthNameEs,
+  todayISO,
+  weekStart,
+  yearOf,
+} from '../utils/dates';
 import { formatMoney } from '../utils/format';
 
 export function totalBankBalance(accounts: BankAccount[]): number {
   return accounts.reduce((sum, a) => sum + (a.balance ?? 0), 0);
+}
+
+function isNoCobrado(e: CashEvent): boolean {
+  const estatus = String(e.meta?.estatusCobro ?? '').toUpperCase();
+  return estatus !== 'COBRADO';
+}
+
+/** Un cheque ya COBRADO ya salió de la cuenta — su efecto ya está reflejado en
+ *  el saldo bancario que Tesorería ingresa manualmente, así que se excluye de
+ *  toda proyección hacia adelante para no restarlo dos veces. */
+function isPendingEvent(e: CashEvent): boolean {
+  if (e.excluded) return false;
+  if (e.kind === 'cheque' && !isNoCobrado(e)) return false;
+  return true;
 }
 
 export function applyFilters(events: CashEvent[], filters: Filters): CashEvent[] {
@@ -42,7 +70,7 @@ export function buildDailyProjection(
   fromDate: string = todayISO(),
   days: number = PROJECTION_DAYS
 ): DailyBucket[] {
-  const active = events.filter((e) => !e.excluded);
+  const active = events.filter(isPendingEvent);
   const byDate = new Map<string, CashEvent[]>();
   for (const e of active) {
     if (!byDate.has(e.date)) byDate.set(e.date, []);
@@ -81,37 +109,6 @@ export function buildDailyProjection(
   }
 
   return buckets;
-}
-
-export function buildWeeklyBuckets(daily: DailyBucket[]): WeeklyBucket[] {
-  const byWeek = new Map<string, DailyBucket[]>();
-  for (const d of daily) {
-    const ws = weekStart(d.date);
-    if (!byWeek.has(ws)) byWeek.set(ws, []);
-    byWeek.get(ws)!.push(d);
-  }
-
-  return [...byWeek.entries()]
-    .sort(([a], [b]) => (a < b ? -1 : 1))
-    .map(([ws, days]) => {
-      const sorted = [...days].sort((a, b) => (a.date < b.date ? -1 : 1));
-      const first = sorted[0];
-      const last = sorted[sorted.length - 1];
-      const cobranza = sorted.reduce((s, d) => s + d.cobranza, 0);
-      const cheques = sorted.reduce((s, d) => s + d.cheques, 0);
-      const pagosFijos = sorted.reduce((s, d) => s + d.pagosFijos, 0);
-      return {
-        weekStart: ws,
-        weekEnd: last.date,
-        label: `${formatDateEs(first.date)} – ${formatDateEs(last.date)}`,
-        openingBalance: first.openingBalance,
-        cobranza,
-        cheques,
-        pagosFijos,
-        closingBalance: last.closingBalance,
-        compromisosTotal: cheques + pagosFijos,
-      };
-    });
 }
 
 export function computeKpis(daily: DailyBucket[], openingBalance: number): Kpis {
@@ -181,7 +178,7 @@ export function buildAlerts(daily: DailyBucket[], events: CashEvent[]): CashAler
   const today = todayISO();
   const proximaSemana = addDays(today, 7);
   const chequesGrandes = events
-    .filter((e) => !e.excluded && e.kind === 'cheque' && e.date >= today && e.date <= proximaSemana)
+    .filter((e) => isPendingEvent(e) && e.kind === 'cheque' && e.date >= today && e.date <= proximaSemana)
     .sort((a, b) => b.amount - a.amount)
     .slice(0, 5);
   for (const c of chequesGrandes.slice(0, 3)) {
@@ -196,4 +193,210 @@ export function buildAlerts(daily: DailyBucket[], events: CashEvent[]): CashAler
   }
 
   return alerts;
+}
+
+// ============================================================================
+// Flujo de Caja en formato matriz (filas = partidas, columnas = período)
+// ============================================================================
+
+export function buildDayPeriods(fromISO: string, toISO: string): TreasuryPeriod[] {
+  const n = Math.max(1, daysBetween(fromISO, toISO) + 1);
+  const periods: TreasuryPeriod[] = [];
+  for (let i = 0; i < n; i++) {
+    const date = addDays(fromISO, i);
+    periods.push({ key: date, label: formatDateLongEs(date), start: date, end: date });
+  }
+  return periods;
+}
+
+export function buildWeekPeriods(fromISO: string, toISO: string): TreasuryPeriod[] {
+  const n = Math.max(1, daysBetween(fromISO, toISO) + 1);
+  const byWeek = new Map<string, string[]>();
+  for (let i = 0; i < n; i++) {
+    const date = addDays(fromISO, i);
+    const ws = weekStart(date);
+    if (!byWeek.has(ws)) byWeek.set(ws, []);
+    byWeek.get(ws)!.push(date);
+  }
+  return [...byWeek.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : 1))
+    .map(([ws, dates]) => {
+      const start = dates[0];
+      const end = dates[dates.length - 1];
+      return { key: ws, label: `${formatDateEs(start)} – ${formatDateEs(end)}`, start, end };
+    });
+}
+
+function sumInRange(events: CashEvent[], start: string, end: string): number {
+  return events.filter((e) => e.date >= start && e.date <= end).reduce((s, e) => s + e.amount, 0);
+}
+
+function sumBefore(events: CashEvent[], cutoff: string): number {
+  return events.filter((e) => e.date < cutoff).reduce((s, e) => s + e.amount, 0);
+}
+
+function matchesSpecialRow(event: CashEvent, keywords: string[]): boolean {
+  const cat = event.category.toUpperCase();
+  return keywords.some((k) => cat.includes(k.toUpperCase()));
+}
+
+function buildFlowRow(label: string, kind: TreasuryRow['kind'], events: CashEvent[], cutoff: string, periods: TreasuryPeriod[], sign: 1 | -1): TreasuryRow {
+  const rezagados = sumBefore(events, cutoff) * sign;
+  const values = periods.map((p) => sumInRange(events, p.start, p.end) * sign);
+  const total = rezagados + values.reduce((s, v) => s + v, 0);
+  return { label, kind, rezagados, values, total };
+}
+
+/**
+ * Flujo de Caja en formato matriz: filas por banco + partidas de movimiento,
+ * columnas por período (día o semana), con una columna "REZAGADOS" (backlog —
+ * eventos anteriores al primer período) y arrastre de saldo en cascada, igual
+ * que `buildDailyProjection` pero pivotado como lo usa Tesorería internamente.
+ */
+export function buildTreasuryMatrix(events: CashEvent[], bankAccounts: BankAccount[], periods: TreasuryPeriod[]): TreasuryMatrix {
+  const active = events.filter(isPendingEvent);
+  const cutoff = periods[0]?.start ?? todayISO();
+
+  const totalRezagadosBancos = totalBankBalance(bankAccounts);
+  const bankRows: TreasuryRow[] = bankAccounts.map((a) => ({
+    label: `SALDO ${a.name}`,
+    kind: 'banco',
+    rezagados: a.balance,
+    values: periods.map(() => null),
+    total: a.balance,
+  }));
+
+  const cobranza = active.filter((e) => e.kind === 'cobranza');
+  const recaudoRow = buildFlowRow('(+) PROYECCIÓN RECAUDO', 'ingreso', cobranza, cutoff, periods, 1);
+
+  const cheques = active.filter((e) => e.kind === 'cheque');
+  const specialRows: TreasuryRow[] = [];
+  const specialMatched = new Set<string>();
+  for (const special of SPECIAL_CHEQUE_ROWS) {
+    const matched = cheques.filter((e) => matchesSpecialRow(e, special.keywords));
+    matched.forEach((e) => specialMatched.add(e.id));
+    specialRows.push(buildFlowRow(`(-) ${special.label}`, 'egreso', matched, cutoff, periods, -1));
+  }
+  const chequesRestantes = cheques.filter((e) => !specialMatched.has(e.id));
+  const chequesRow = buildFlowRow('(-) CHEQUES POSFECHADOS', 'egreso', chequesRestantes, cutoff, periods, -1);
+
+  const pagosFijos = active.filter((e) => e.kind === 'pago_fijo');
+  const pagosFijosRow = buildFlowRow('(-) PAGOS FIJOS', 'egreso', pagosFijos, cutoff, periods, -1);
+
+  const movementRows = [recaudoRow, ...specialRows, chequesRow, pagosFijosRow];
+
+  const saldoFinalRezagados = totalRezagadosBancos + movementRows.reduce((s, r) => s + (r.rezagados ?? 0), 0);
+  const saldoFinalValues = periods.map((_, i) => movementRows.reduce((s, r) => s + (r.values[i] ?? 0), 0));
+  const saldoFinalTotal = saldoFinalRezagados + saldoFinalValues.reduce((s, v) => s + v, 0);
+  const saldoFinalRow: TreasuryRow = {
+    label: '(=) SALDO FINAL',
+    kind: 'saldoFinal',
+    rezagados: saldoFinalRezagados,
+    values: saldoFinalValues,
+    total: saldoFinalTotal,
+  };
+
+  const saldoInicialValues: number[] = [];
+  const flujoDisponibleValues: number[] = [];
+  let running = saldoFinalRezagados;
+  for (let i = 0; i < periods.length; i++) {
+    saldoInicialValues.push(running);
+    const closing = running + saldoFinalValues[i];
+    flujoDisponibleValues.push(closing);
+    running = closing;
+  }
+  const saldoInicialRow: TreasuryRow = {
+    label: '(+) SALDO INICIAL',
+    kind: 'saldoInicial',
+    rezagados: saldoFinalRezagados,
+    values: saldoInicialValues,
+    total: null,
+  };
+  const flujoDisponibleRow: TreasuryRow = {
+    label: '(=) FLUJO DISPONIBLE',
+    kind: 'flujoDisponible',
+    rezagados: saldoFinalRezagados,
+    values: flujoDisponibleValues,
+    total: flujoDisponibleValues.length ? flujoDisponibleValues[flujoDisponibleValues.length - 1] : saldoFinalRezagados,
+  };
+
+  return {
+    periods,
+    totalRezagadosBancos,
+    rows: [...bankRows, recaudoRow, ...specialRows, chequesRow, pagosFijosRow, saldoFinalRow, saldoInicialRow, flujoDisponibleRow],
+  };
+}
+
+// ============================================================================
+// Cheques: filtros tipo "botón" + tabla dinámica Año > Mes > Día
+// ============================================================================
+
+export function applyChequeFilters(events: CashEvent[], filters: ChequeFilters): CashEvent[] {
+  return events.filter((e) => {
+    if (filters.estado !== 'todos' && e.status !== filters.estado) return false;
+    if (filters.banco !== 'todos' && (e.bank ?? 'Sin banco') !== filters.banco) return false;
+    if (filters.estatus2 !== 'todos' && String(e.meta?.estatusCobro ?? 'Sin estatus') !== filters.estatus2) return false;
+    if (filters.negociacion !== 'todos' && String(e.meta?.negociacion ?? 'Sin negociación') !== filters.negociacion) return false;
+    if (filters.mes !== 'todos' && monthNameEs(e.date) !== filters.mes) return false;
+    if (filters.anio !== 'todos' && yearOf(e.date) !== filters.anio) return false;
+    if (filters.semana !== 'todos' && isoWeekLabel(e.date) !== filters.semana) return false;
+    return true;
+  });
+}
+
+/** Cheques "rezagados": con fecha anterior a hoy y que aún no se han cobrado
+ *  (si ya están COBRADO, son historia resuelta, no backlog pendiente). */
+export function chequesRezagados(events: CashEvent[], asOf: string = todayISO()): CashEvent[] {
+  return events
+    .filter((e) => !e.excluded && e.kind === 'cheque' && e.date < asOf && isNoCobrado(e))
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+}
+
+/** Tabla dinámica Año > Mes > Día con la suma de cheques NO COBRADOS, igual a
+ *  la tabla dinámica "Suma de NO COBRADOS" que ya existe en BASE CHEQUES. */
+export function buildChequesPivot(chequeEvents: CashEvent[]): ChequesPivotYear[] {
+  const noCobrados = chequeEvents.filter((e) => !e.excluded && isNoCobrado(e));
+
+  const years = new Map<string, Map<string, Map<string, CashEvent[]>>>();
+  for (const e of noCobrados) {
+    const y = yearOf(e.date);
+    const m = monthNameEs(e.date);
+    const d = e.date;
+    if (!years.has(y)) years.set(y, new Map());
+    const months = years.get(y)!;
+    if (!months.has(m)) months.set(m, new Map());
+    const days = months.get(m)!;
+    if (!days.has(d)) days.set(d, []);
+    days.get(d)!.push(e);
+  }
+
+  const result: ChequesPivotYear[] = [...years.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : 1))
+    .map(([year, months]) => {
+      const monthList = [...months.entries()]
+        .sort(([, aDays], [, bDays]) => {
+          const aDate = [...aDays.keys()][0];
+          const bDate = [...bDays.keys()][0];
+          return aDate < bDate ? -1 : 1;
+        })
+        .map(([month, days]) => {
+          const dayList = [...days.entries()]
+            .sort(([a], [b]) => (a < b ? -1 : 1))
+            .map(([date, evts]) => ({
+              day: date.slice(8, 10),
+              date,
+              total: evts.reduce((s, e) => s + e.amount, 0),
+              events: evts,
+            }));
+          return {
+            month,
+            monthKey: dayList[0]?.date.slice(0, 7) ?? month,
+            total: dayList.reduce((s, d) => s + d.total, 0),
+            days: dayList,
+          };
+        });
+      return { year, total: monthList.reduce((s, m) => s + m.total, 0), months: monthList };
+    });
+
+  return result;
 }

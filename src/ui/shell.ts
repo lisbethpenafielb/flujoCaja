@@ -106,30 +106,43 @@ export function renderHeader(opts: {
   );
 }
 
-export type TabId = 'resumen' | 'diario' | 'semanal' | 'graficos' | 'bancos' | 'alertas';
+export type TabId =
+  | 'resumen'
+  | 'diario'
+  | 'semanal'
+  | 'bancos'
+  | 'rezagados'
+  | 'chequesDiarios'
+  | 'tablaCheques'
+  | 'alertas';
 
 export const TABS: { id: TabId; label: string }[] = [
   { id: 'resumen', label: 'Resumen Ejecutivo' },
   { id: 'diario', label: 'Flujo Diario' },
   { id: 'semanal', label: 'Flujo Semanal' },
-  { id: 'graficos', label: 'Proyección y Gráficos' },
+  { id: 'rezagados', label: 'Cheques Rezagados' },
+  { id: 'chequesDiarios', label: 'Cheques Diarios' },
+  { id: 'tablaCheques', label: 'Tabla de Cheques' },
   { id: 'bancos', label: 'Saldos Bancarios' },
   { id: 'alertas', label: 'Alertas' },
 ];
 
+const NAVY = '#0f2942';
+const NAVY_LIGHT = '#1c4468';
+
 export function renderTabs(active: TabId, onChange: (id: TabId) => void): HTMLElement {
   return h(
     'nav',
-    { class: 'flex gap-1 px-6 overflow-x-auto scrollbar-thin', style: 'background:var(--surface);border-bottom:1px solid var(--gridline)' },
+    { class: 'flex gap-1 px-6 overflow-x-auto scrollbar-thin', style: `background:${NAVY}` },
     TABS.map((t) =>
       h(
         'button',
         {
-          class: 'text-sm font-medium px-3.5 py-3 whitespace-nowrap border-b-2 transition-colors',
+          class: 'text-sm font-semibold px-3.5 py-3 whitespace-nowrap border-b-2 transition-colors',
           style:
             t.id === active
-              ? 'color:var(--brand);border-color:var(--brand)'
-              : 'color:var(--ink-secondary);border-color:transparent',
+              ? `color:#ffffff;border-color:#f0b429;background:${NAVY_LIGHT}`
+              : 'color:#a9bdd4;border-color:transparent',
           onclick: () => onChange(t.id),
         },
         [t.label]

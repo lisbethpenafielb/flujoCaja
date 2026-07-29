@@ -44,18 +44,6 @@ export interface DailyBucket {
   status: 'negativo' | 'bajo' | 'suficiente';
 }
 
-export interface WeeklyBucket {
-  weekStart: string;
-  weekEnd: string;
-  label: string;
-  openingBalance: number;
-  cobranza: number;
-  cheques: number;
-  pagosFijos: number;
-  closingBalance: number;
-  compromisosTotal: number;
-}
-
 export interface Kpis {
   saldoBancario: number;
   cobranzaEsperada: number;
@@ -90,4 +78,64 @@ export interface LoadedDataset {
   excludedEvents: CashEvent[];
   loadedAt: Date;
   warnings: string[];
+}
+
+// --- Filtros tipo "botón" para las pestañas de cheques ---------------------
+// Distintos de `Filters` (fecha/banco/proveedor/categoría/estado, aplicados
+// globalmente): estos son facetas específicas de BASE CHEQUES, compartidas
+// entre las 3 pestañas de cheques (Rezagados, Diarios, Tabla) para que la
+// selección persista al cambiar de pestaña.
+export interface ChequeFilters {
+  estado: string | 'todos';
+  banco: string | 'todos';
+  estatus2: string | 'todos';
+  negociacion: string | 'todos';
+  mes: string | 'todos';
+  anio: string | 'todos';
+  semana: string | 'todos';
+}
+
+// --- Flujo de Caja en formato matriz (filas = partidas, columnas = período) -
+export interface TreasuryPeriod {
+  key: string;
+  label: string;
+  start: string;
+  end: string;
+}
+
+export type TreasuryRowKind = 'banco' | 'ingreso' | 'egreso' | 'saldoFinal' | 'saldoInicial' | 'flujoDisponible';
+
+export interface TreasuryRow {
+  label: string;
+  kind: TreasuryRowKind;
+  rezagados: number | null;
+  values: (number | null)[];
+  total: number | null;
+}
+
+export interface TreasuryMatrix {
+  periods: TreasuryPeriod[];
+  totalRezagadosBancos: number;
+  rows: TreasuryRow[];
+}
+
+// --- Tabla dinámica de cheques (Año > Mes > Día, suma de no cobrados) ------
+export interface ChequesPivotDay {
+  day: string;
+  date: string;
+  total: number;
+  events: CashEvent[];
+}
+
+export interface ChequesPivotMonth {
+  month: string;
+  monthKey: string;
+  total: number;
+  days: ChequesPivotDay[];
+}
+
+export interface ChequesPivotYear {
+  year: string;
+  total: number;
+  months: ChequesPivotMonth[];
 }

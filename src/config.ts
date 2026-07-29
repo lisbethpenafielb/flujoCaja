@@ -22,23 +22,29 @@ export const SOURCE_FILES = {
 // encuentra ahí, el cliente hace una búsqueda global por nombre como respaldo).
 export const SOURCE_FOLDER_ID = '18lkJxSVXPqq-UKuDPXvBn9DIZwFgSGUF';
 
-// Cuentas bancarias de Transcomerinter. El saldo es 100% manual y vive solo en la
-// sesión del navegador (sessionStorage) — nunca se guarda en Excel ni se envía a
-// ningún servidor. Editar aquí la lista de bancos/alias si cambia el número de cuentas.
+// Bancos de Transcomerinter. El saldo es 100% manual y vive solo en la sesión
+// del navegador (sessionStorage) — nunca se guarda en Excel ni se envía a
+// ningún servidor. `name` es también la etiqueta corta usada como fila en el
+// Flujo de Caja (formato matriz). Coincide con los 6 bancos reales de la
+// plantilla de tesorería (Pichincha, Produbanco, Guayaquil, Austro,
+// Internacional, Loja — este último es Banco de Loja, no una plaza/sucursal).
 export const DEFAULT_BANK_ACCOUNTS: { id: string; name: string; bankName: string }[] = [
-  { id: 'cta-01', name: 'Cuenta Corriente 1', bankName: 'Banco Pichincha' },
-  { id: 'cta-02', name: 'Cuenta Corriente 2', bankName: 'Banco Pichincha' },
-  { id: 'cta-03', name: 'Cuenta Corriente 3', bankName: 'Banco Guayaquil' },
-  { id: 'cta-04', name: 'Cuenta Corriente 4', bankName: 'Banco Guayaquil' },
-  { id: 'cta-05', name: 'Cuenta Corriente 5', bankName: 'Produbanco' },
-  { id: 'cta-06', name: 'Cuenta Corriente 6', bankName: 'Produbanco' },
-  { id: 'cta-07', name: 'Cuenta Corriente 7', bankName: 'Banco Internacional' },
-  { id: 'cta-08', name: 'Cuenta Corriente 8', bankName: 'Banco Internacional' },
-  { id: 'cta-09', name: 'Cuenta Corriente 9', bankName: 'Banco Bolivariano' },
-  { id: 'cta-10', name: 'Cuenta Corriente 10', bankName: 'Banco Bolivariano' },
-  { id: 'cta-11', name: 'Cuenta Corriente 11', bankName: 'Banco del Pacífico' },
-  { id: 'cta-12', name: 'Cuenta Corriente 12', bankName: 'Banco del Austro' },
-  { id: 'cta-13', name: 'Cuenta Corriente 13', bankName: 'Cooperativa / Otro' },
+  { id: 'pichincha', name: 'PICHINCHA', bankName: 'Banco Pichincha' },
+  { id: 'produbanco', name: 'PRODUBANCO', bankName: 'Produbanco' },
+  { id: 'guayaquil', name: 'GUAYAQUIL', bankName: 'Banco de Guayaquil' },
+  { id: 'austro', name: 'AUSTRO', bankName: 'Banco del Austro' },
+  { id: 'internacional', name: 'INTERNACIONAL', bankName: 'Banco Internacional' },
+  { id: 'loja', name: 'LOJA', bankName: 'Banco de Loja' },
+];
+
+// Categorías de egreso que se desglosan como filas propias en el Flujo de Caja
+// (formato matriz), en vez de agruparse dentro de "Cheques Posfechados". El
+// emparejamiento es por palabra clave contra CATEGORIA/DETALLE del cheque —
+// ajustar aquí si Tesorería confirma otra nomenclatura en el Excel fuente.
+export const SPECIAL_CHEQUE_ROWS: { label: string; keywords: string[] }[] = [
+  { label: 'POR DEVOLVER A ALMACENERA', keywords: ['ALMACENERA'] },
+  { label: 'PRESTAMO PERÚ', keywords: ['PRESTAMO PERU', 'PRÉSTAMO PERÚ', 'PRESTAMO PERÚ'] },
+  { label: 'PRESTAMOS TERCEROS', keywords: ['PRESTAMOS TERCEROS', 'PRESTAMO TERCEROS'] },
 ];
 
 // Umbrales del semáforo de riesgo diario, como múltiplo del promedio de egresos

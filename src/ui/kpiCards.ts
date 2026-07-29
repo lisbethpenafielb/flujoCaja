@@ -54,7 +54,7 @@ export function renderKpiCards(kpis: Kpis): HTMLElement {
     kpiCard({
       label: 'Saldo Bancario',
       value: formatMoney(kpis.saldoBancario),
-      sub: 'Consolidado, 13 cuentas',
+      sub: 'Consolidado, 6 bancos',
       iconName: 'bank',
       color: '#2a78d6',
     }),

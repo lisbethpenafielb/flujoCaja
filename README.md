@@ -6,8 +6,25 @@ desde Google Drive, y calcula el flujo de caja diario, semanal y a 30 días.
 
 No es un dashboard de Excel: es una capa de cálculo propia (motor de flujo de
 caja) sobre datos que siempre se leen en vivo desde los archivos fuente. La
-única excepción es el saldo de las 13 cuentas bancarias, que Tesorería ingresa
+única excepción es el saldo de los 6 bancos, que Tesorería ingresa
 manualmente y que vive solo mientras dura la sesión del navegador.
+
+## Pestañas
+
+- **Resumen Ejecutivo** — KPIs, semáforo de riesgo y alertas.
+- **Flujo Diario / Flujo Semanal** — Flujo de caja en formato matriz (filas =
+  bancos + partidas de movimiento, columnas = día o semana), con columna
+  REZAGADOS (backlog anterior a la fecha "Desde") y arrastre de saldo en
+  cascada, igual a la plantilla de control que ya usa Tesorería.
+- **Cheques Rezagados** — cheques con fecha anterior a hoy aún no cobrados.
+  Filtros: Estado, Banco, Estatus 2, Negociación.
+- **Cheques Diarios** — todos los cheques, ordenados por fecha. Filtros:
+  Estado, Mes, Banco, Negociación, Año, Semana.
+- **Tabla de Cheques** — tabla dinámica Año › Mes › Día con la suma de
+  cheques no cobrados; clic en un día para desplegar el detalle. Filtros:
+  Estado, Banco, Negociación, Semana.
+- **Saldos Bancarios** — ingreso manual de los 6 bancos (ver excepción abajo).
+- **Alertas** — alertas automáticas del período filtrado.
 
 ## Arquitectura
 
@@ -20,12 +37,13 @@ src/
     driveClient.ts      Búsqueda + descarga de los 3 archivos por nombre
     xlsxUtils.ts         Utilidades de lectura de Excel basadas en encabezados
     parsers/             Un parser por archivo fuente -> CashEvent[]
-    engine.ts            Proyección diaria/semanal, KPIs, alertas
+    engine.ts            Proyección diaria/semanal, matriz de tesorería, KPIs,
+                          alertas, pivote de cheques (Año › Mes › Día)
     sync.ts               Orquesta auth + descarga + parseo + store
   state/
     store.ts              Estado central + pub/sub (sin framework)
     bankAccounts.ts        Saldos bancarios (sessionStorage, no persistente)
-  ui/                     Render funcional (KPIs, tablas, gráficos, filtros...)
+  ui/                     Render funcional (KPIs, tablas, matriz, filtros...)
 ```
 
 **Por qué esta arquitectura:** el motor de cálculo (`data/engine.ts`) y la UI
@@ -115,11 +133,12 @@ Hallazgos que conviene corregir en el origen para un flujo de caja más preciso:
    "Pagos Fijos". Recomendado: ampliar el archivo a una tabla normalizada
    `Concepto, Categoría, Beneficiario, Periodicidad, Día de pago, Monto,
    Cuenta origen`.
-2. **BASE CHEQUES**: la columna `BANCO` trae valores como "LOJA" que parecen
-   ser plaza/sucursal, no uno de los 13 nombres reales de cuenta bancaria. Por
-   eso el consolidado se maneja a nivel de "Total Disponible en Bancos" y no
-   por cuenta individual. Para desglosar cheques por cuenta, `BANCO` debe
-   normalizarse a los 13 nombres reales.
+2. **BASE CHEQUES**: la columna `BANCO` coincide con los 6 bancos reales de
+   Transcomerinter (Pichincha, Produbanco, Guayaquil, Austro, Internacional,
+   Loja — este último es Banco de Loja). El Flujo de Caja usa esta columna
+   solo como filtro/dato descriptivo del cheque; el saldo de cada banco en la
+   matriz proviene siempre del ingreso manual en "Saldos Bancarios", nunca de
+   BASE CHEQUES.
 3. **PROYECCION DE CARTERA → RESUMEN**: la cobranza se agenda por día de la
    semana (LUNES/MARTES/...), sin fecha calendario. El motor resuelve esto a
    la próxima fecha real de ese día de la semana; sería más preciso agregar
@@ -137,7 +156,17 @@ Hallazgos que conviene corregir en el origen para un flujo de caja más preciso:
 
 ## Saldos Bancarios (excepción del módulo)
 
-Los saldos de las 13 cuentas bancarias **no provienen de ningún Excel**.
-Tesorería los ingresa en la pestaña "Saldos Bancarios"; el valor vive en
-`sessionStorage` del navegador y se pierde al cerrar la pestaña — nunca se
-escribe en disco, en Excel ni se envía a ningún servidor.
+Los saldos de los 6 bancos **no provienen de ningún Excel**. Tesorería los
+ingresa en la pestaña "Saldos Bancarios"; el valor vive en `sessionStorage`
+del navegador y se pierde al cerrar la pestaña — nunca se escribe en disco,
+en Excel ni se envía a ningún servidor.
+
+## Cheques ya cobrados
+
+Un cheque cuyo `ESTATUS 2` (columna `estatusCobro`) es `COBRADO` ya salió de
+la cuenta — su efecto ya está reflejado en el saldo bancario que Tesorería
+ingresa manualmente. Por eso el motor lo excluye de toda proyección hacia
+adelante (Flujo Diario/Semanal, KPIs, Alertas) para no restarlo dos veces;
+solo aparece en "Cheques Diarios" (que muestra el universo completo) y queda
+fuera de "Cheques Rezagados" y "Tabla de Cheques" (ambas son, por
+definición, cheques **no cobrados**).

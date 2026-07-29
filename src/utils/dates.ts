@@ -86,3 +86,39 @@ export function formatDateShortEs(iso: string): string {
   const d = new Date(iso + 'T00:00:00');
   return d.toLocaleDateString('es-EC', { weekday: 'short', day: '2-digit', month: 'short' });
 }
+
+/** "lunes, 27 julio" — para encabezados de columna del flujo de caja en formato matriz. */
+export function formatDateLongEs(iso: string): string {
+  const d = new Date(iso + 'T00:00:00');
+  const s = d.toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: 'long' });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+export function monthNameEs(iso: string): string {
+  const d = new Date(iso + 'T00:00:00');
+  const s = d.toLocaleDateString('es-EC', { month: 'long' });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+export function yearOf(iso: string): string {
+  return iso.slice(0, 4);
+}
+
+export function dayOfMonth(iso: string): string {
+  return iso.slice(8, 10);
+}
+
+/** Número de semana ISO-8601 (1-53), usado para el filtro "Semana" de cheques. */
+export function isoWeekNumber(iso: string): number {
+  const d = new Date(iso + 'T00:00:00');
+  const target = new Date(d.valueOf());
+  const dayNr = (d.getDay() + 6) % 7;
+  target.setDate(target.getDate() - dayNr + 3);
+  const firstThursday = new Date(target.getFullYear(), 0, 4);
+  const diff = target.getTime() - firstThursday.getTime();
+  return 1 + Math.round(diff / (7 * 86400000));
+}
+
+export function isoWeekLabel(iso: string): string {
+  return `Semana ${isoWeekNumber(iso)}`;
+}

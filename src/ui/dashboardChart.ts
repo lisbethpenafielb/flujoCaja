@@ -50,7 +50,7 @@ function smoothPath(points: { x: number; y: number }[]): string {
 
 export function renderDashboardChart(daily: DailyBucket[]): HTMLElement {
   const W = 960;
-  const H = 340;
+  const H = 420;
   const padL = 64;
   const padR = 20;
   const padT = 24;

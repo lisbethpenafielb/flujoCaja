@@ -139,25 +139,28 @@ function render(): void {
     const chequesPendientes = daily.reduce((n, d) => n + d.events.filter((e) => e.kind === 'cheque').length, 0);
 
     main.appendChild(renderExecutiveSummary(buildExecutiveSummary(kpis, daily)));
+    // KPIs en columna angosta a la izquierda + gráfico principal a la
+    // derecha — mismo contenido que antes, solo reordenado para que las
+    // tarjetas no dominen el ancho completo y el gráfico gane protagonismo.
     main.appendChild(
-      renderKpiCards(kpis, { extras: { cobranzaTrend, chequesTrend, pagosFijosTrend, saldoNetoTrend, chequesPendientes } })
-    );
-    main.appendChild(renderRiskCard(kpis, negativeDays));
-    main.appendChild(
-      h('div', { class: 'grid grid-cols-1 lg:grid-cols-2 gap-4' }, [
-        renderIncomeVsExpenseCard(daily),
-        renderPaymentCoverageCard(coverageRatio(daily)),
-      ])
-    );
-    main.appendChild(
-      h('div', { class: 'grid grid-cols-1 xl:grid-cols-[7fr_3fr] gap-4 items-start' }, [
-        h('div', { class: 'card p-5' }, [
+      h('div', { class: 'grid grid-cols-1 xl:grid-cols-[320px_1fr] gap-4 items-stretch' }, [
+        h('div', {}, [
+          renderKpiCards(kpis, { extras: { cobranzaTrend, chequesTrend, pagosFijosTrend, saldoNetoTrend, chequesPendientes } }),
+        ]),
+        h('div', { class: 'card p-5 flex flex-col' }, [
           h('div', { class: 'mb-4' }, [
             h('h3', { class: 'font-semibold', style: 'font-size:15px;color:var(--ink-primary)' }, ['Evolución Proyectada del Flujo de Caja']),
             h('p', { class: 'text-xs', style: 'color:var(--ink-muted)' }, [`Próximos ${projectionDays} días, saldo de cierre diario`]),
           ]),
-          renderDashboardChart(daily),
+          h('div', { class: 'flex-1 flex flex-col justify-start' }, [renderDashboardChart(daily)]),
         ]),
+      ])
+    );
+    main.appendChild(renderRiskCard(kpis, negativeDays));
+    main.appendChild(
+      h('div', { class: 'grid grid-cols-1 lg:grid-cols-3 gap-4 items-start' }, [
+        renderIncomeVsExpenseCard(daily),
+        renderPaymentCoverageCard(coverageRatio(daily)),
         renderAlerts(alerts, { compact: true, title: 'Alertas prioritarias', deficitAmount: deficitMagnitude(daily) }),
       ])
     );

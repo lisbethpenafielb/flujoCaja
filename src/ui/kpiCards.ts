@@ -75,15 +75,15 @@ function kpiCard(opts: KpiCardOpts, compact: boolean): HTMLElement {
     ]);
   }
 
-  // Fila horizontal (ícono a la izquierda, valor + tendencia en línea) en vez
-  // de tarjeta cuadrada — pensada para apilarse verticalmente en el
-  // Dashboard sin producir una página excesivamente alta.
-  return h('div', { class: 'card card-hover px-5 py-4 flex items-center gap-4 animate-fade-in' }, [
-    kpiIcon(opts.iconName, opts.accent, 44),
+  // Fila horizontal compacta (ícono a la izquierda, valor + tendencia en
+  // línea) — pensada para apilarse verticalmente en una columna angosta del
+  // Dashboard, junto al gráfico principal, sin producir tarjetas extensas.
+  return h('div', { class: 'card card-hover px-4 py-3 flex items-center gap-3 animate-fade-in' }, [
+    kpiIcon(opts.iconName, opts.accent, 34),
     h('div', { class: 'min-w-0 flex-1' }, [
-      h('p', { class: 'text-sm font-medium', style: 'color:var(--ink-secondary)' }, [opts.label]),
-      h('div', { class: 'flex items-baseline flex-wrap gap-x-3 gap-y-0.5 mt-0.5' }, [
-        h('span', { class: 'tabular-nums font-semibold', style: 'font-size:24px;letter-spacing:-0.02em;color:var(--ink-primary)' }, [
+      h('p', { class: 'text-xs font-medium truncate', style: 'color:var(--ink-secondary)' }, [opts.label]),
+      h('div', { class: 'flex items-baseline flex-wrap gap-x-2 gap-y-0.5' }, [
+        h('span', { class: 'tabular-nums font-semibold', style: 'font-size:19px;letter-spacing:-0.02em;color:var(--ink-primary)' }, [
           opts.value,
         ]),
         trendChip,
@@ -161,7 +161,7 @@ export function renderKpiCards(kpis: Kpis, opts: { compact?: boolean; extras?: K
   return h(
     'div',
     {
-      class: compact ? 'grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3' : 'flex flex-col gap-3',
+      class: compact ? 'grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3' : 'flex flex-col gap-2.5',
     },
     cards.map((c) => kpiCard(c, compact))
   );

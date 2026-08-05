@@ -158,11 +158,13 @@ function render(): void {
     );
     main.appendChild(renderRiskCard(kpis, negativeDays));
     main.appendChild(
-      h('div', { class: 'grid grid-cols-1 lg:grid-cols-3 gap-4 items-start' }, [
+      h('div', { class: 'grid grid-cols-1 lg:grid-cols-2 gap-4 items-start' }, [
         renderIncomeVsExpenseCard(daily),
         renderPaymentCoverageCard(coverageRatio(daily)),
-        renderAlerts(alerts, { compact: true, title: 'Alertas prioritarias', deficitAmount: deficitMagnitude(daily) }),
       ])
+    );
+    main.appendChild(
+      renderAlerts(alerts, { compact: true, horizontal: true, title: 'Alertas prioritarias', deficitAmount: deficitMagnitude(daily) })
     );
 
     // Pronósticos: siempre desde hoy y a horizontes fijos (0/7/15/30/60/90

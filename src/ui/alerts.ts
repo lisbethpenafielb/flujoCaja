@@ -34,13 +34,13 @@ function suggestedAction(alert: CashAlert): string {
   return 'Revisar el detalle en el Flujo de Caja.';
 }
 
-function alertCard(alert: CashAlert, priority: Priority, compact: boolean, deficitAmount?: number | null): HTMLElement {
+function alertCard(alert: CashAlert, priority: Priority, compact: boolean, horizontal: boolean, deficitAmount?: number | null): HTMLElement {
   const meta = PRIORITY_META[priority];
   const showDeficit = alert.id === 'saldo-negativo' && deficitAmount !== undefined && deficitAmount !== null;
   return h(
     'div',
     {
-      class: 'rounded-lg flex items-start gap-3',
+      class: `rounded-lg flex items-start gap-3 ${horizontal ? 'flex-1 min-w-[280px]' : ''}`,
       style: `background:${meta.bg};border:1px solid ${meta.border};padding:${compact ? '10px 12px' : '14px 16px'}`,
     },
     [
@@ -78,8 +78,12 @@ function emptyState(): HTMLElement {
   ]);
 }
 
-export function renderAlerts(alerts: CashAlert[], opts: { compact?: boolean; title?: string; deficitAmount?: number | null } = {}): HTMLElement {
+export function renderAlerts(
+  alerts: CashAlert[],
+  opts: { compact?: boolean; horizontal?: boolean; title?: string; deficitAmount?: number | null } = {}
+): HTMLElement {
   const compact = opts.compact ?? false;
+  const horizontal = opts.horizontal ?? false;
 
   if (alerts.length === 0) return emptyState();
 
@@ -102,7 +106,9 @@ export function renderAlerts(alerts: CashAlert[], opts: { compact?: boolean; tit
           String(items.length),
         ]),
       ]),
-      h('div', { class: 'flex flex-col gap-2' }, items.map((a) => alertCard(a, p, compact, opts.deficitAmount))),
+      h('div', { class: horizontal ? 'flex flex-wrap gap-2' : 'flex flex-col gap-2' }, [
+        ...items.map((a) => alertCard(a, p, compact, horizontal, opts.deficitAmount)),
+      ]),
     ]);
   });
 

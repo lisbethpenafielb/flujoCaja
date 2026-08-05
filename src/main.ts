@@ -22,10 +22,12 @@ import {
   totalBankBalance,
 } from './data/engine';
 import { buildExecutiveSummary, coverageRatio, deficitMagnitude } from './data/derived';
+import { buildFirstDeficitForecast, buildHorizonForecasts } from './data/forecast';
 import { renderHeader, renderTabs, type TabId } from './ui/shell';
 import { computeTrend, renderKpiCards } from './ui/kpiCards';
 import { renderRiskCard } from './ui/riskCard';
 import { renderExecutiveSummary } from './ui/executiveSummary';
+import { renderForecastPanel } from './ui/forecastPanel';
 import { renderPaymentCoverageCard } from './ui/paymentCoverageCard';
 import { renderIncomeVsExpenseCard } from './ui/incomeExpenseCard';
 import { renderDashboardChart } from './ui/dashboardChart';
@@ -158,6 +160,17 @@ function render(): void {
         ]),
         renderAlerts(alerts, { compact: true, title: 'Alertas prioritarias', deficitAmount: deficitMagnitude(daily) }),
       ])
+    );
+
+    // Pronósticos: siempre desde hoy y a horizontes fijos (0/7/15/30/60/90
+    // días), deliberadamente independientes del filtro Desde/Hasta de
+    // arriba — es una vista estructural, no una que se recorta con fechas.
+    const forecastDaily90 = buildDailyProjection(eventsWithManual, openingBalance, todayISO(), 90);
+    main.appendChild(
+      renderForecastPanel(
+        buildHorizonForecasts(eventsWithManual, openingBalance),
+        buildFirstDeficitForecast(forecastDaily90)
+      )
     );
   } else if (activeTab === 'diario') {
     const daily = buildDailyProjection(filtered, openingBalance, filters.dateFrom, projectionDays);

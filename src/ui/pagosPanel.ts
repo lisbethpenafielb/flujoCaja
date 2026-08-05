@@ -1,8 +1,9 @@
-import type { CashEvent, ManualPago, PagoEstado } from '../types';
+import type { CashEvent, ExcelEstadoOverrides, ManualPago } from '../types';
 import { store } from '../state/store';
 import { formatDateShortEs, todayISO } from '../utils/dates';
 import { formatMoney } from '../utils/format';
 import { h } from './dom';
+import { renderEstadoSelect } from './estadoSelect';
 import { icon } from './icons';
 import { BRAND, STATUS } from './palette';
 
@@ -72,26 +73,6 @@ function addForm(): HTMLElement {
   ]);
 }
 
-function estadoSelect(pago: ManualPago): HTMLElement {
-  const sel = h('select', {
-    class: 'text-sm font-medium rounded-lg px-2.5 py-1.5 outline-none',
-    style:
-      pago.estado === 'pagado'
-        ? `border:1px solid ${STATUS.good}55;background:${STATUS.good}1a;color:${STATUS.good}`
-        : `border:1px solid ${STATUS.warning}55;background:${STATUS.warning}1a;color:#8a6200`,
-    onchange: (e: Event) => store.updateManualPago(pago.id, { estado: (e.target as HTMLSelectElement).value as PagoEstado }),
-  }) as HTMLSelectElement;
-  for (const [value, label] of [
-    ['pendiente', 'Pendiente'],
-    ['pagado', 'Pagado'],
-  ] as [PagoEstado, string][]) {
-    const o = h('option', { value }, [label]) as HTMLOptionElement;
-    if (value === pago.estado) o.selected = true;
-    sel.appendChild(o);
-  }
-  return sel;
-}
-
 function pagoRow(pago: ManualPago): HTMLElement {
   const conceptoInput = h('input', {
     type: 'text',
@@ -136,22 +117,25 @@ function pagoRow(pago: ManualPago): HTMLElement {
     conceptoInput,
     montoInput,
     fechaInput,
-    estadoSelect(pago),
+    renderEstadoSelect(pago.estado, (estado) => store.updateManualPago(pago.id, { estado })),
     deleteBtn,
   ]);
 }
 
-function excelPagoRow(e: CashEvent): HTMLElement {
-  return h('div', { class: 'grid grid-cols-[2fr_1fr_1fr] gap-3 items-center py-2.5 text-sm' }, [
+function excelPagoRow(e: CashEvent, excelEstados: ExcelEstadoOverrides): HTMLElement {
+  const estado = excelEstados[e.id] ?? 'pendiente';
+  return h('div', { class: 'grid grid-cols-[2fr_1fr_1fr_auto] gap-3 items-center py-2.5 text-sm' }, [
     h('span', { style: 'color:var(--ink-primary)' }, [e.category]),
     h('span', { class: 'tabular-nums text-right', style: 'color:var(--ink-primary)' }, [formatMoney(e.amount)]),
     h('span', { class: 'tabular-nums', style: 'color:var(--ink-muted)' }, [formatDateShortEs(e.date)]),
+    renderEstadoSelect(estado, (v) => store.setExcelEstado(e.id, v)),
   ]);
 }
 
-export function renderPagosPanel(pagos: ManualPago[], excelPagosFijos: CashEvent[]): HTMLElement {
+export function renderPagosPanel(pagos: ManualPago[], excelPagosFijos: CashEvent[], excelEstados: ExcelEstadoOverrides): HTMLElement {
   const pendientes = pagos.filter((p) => p.estado === 'pendiente');
-  const totalPendiente = pendientes.reduce((s, p) => s + p.monto, 0) + excelPagosFijos.reduce((s, e) => s + e.amount, 0);
+  const excelPendientes = excelPagosFijos.filter((e) => (excelEstados[e.id] ?? 'pendiente') === 'pendiente');
+  const totalPendiente = pendientes.reduce((s, p) => s + p.monto, 0) + excelPendientes.reduce((s, e) => s + e.amount, 0);
 
   const sorted = [...pagos].sort((a, b) => (a.fecha < b.fecha ? -1 : 1));
 
@@ -178,12 +162,12 @@ export function renderPagosPanel(pagos: ManualPago[], excelPagosFijos: CashEvent
       h('div', { class: 'mb-2' }, [
         h('h3', { class: 'font-semibold', style: 'font-size:15px;color:var(--ink-primary)' }, ['Pagos fijos desde Excel']),
         h('p', { class: 'text-xs', style: 'color:var(--ink-muted)' }, [
-          'PAGOS FIJOS.xlsx (convenio IESS) — de solo lectura, siempre pendiente, no se puede marcar como pagado aquí.',
+          'PAGOS FIJOS.xlsx (convenio IESS) — el monto viene del Excel, pero podés marcar cada renglón como pagado para sacarlo del Flujo sin editar el archivo origen.',
         ]),
       ]),
       excelPagosFijos.length === 0
         ? h('p', { class: 'text-sm p-6 text-center', style: 'color:var(--ink-muted)' }, ['No hay pagos fijos cargados desde Excel.'])
-        : h('div', { class: 'divide-y', style: 'border-color:var(--gridline)' }, excelPagosFijos.map(excelPagoRow)),
+        : h('div', { class: 'divide-y', style: 'border-color:var(--gridline)' }, excelPagosFijos.map((e) => excelPagoRow(e, excelEstados))),
     ]),
   ]);
 }

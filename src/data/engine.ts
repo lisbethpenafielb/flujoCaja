@@ -5,6 +5,7 @@ import type {
   ChequeFilters,
   ChequesPivotYear,
   DailyBucket,
+  ExcelEstadoOverrides,
   Filters,
   FlatChequePivot,
   Kpis,
@@ -319,6 +320,14 @@ export function buildManualRecaudoEvents(recaudos: ManualRecaudo[]): CashEvent[]
       source: 'MANUAL',
       sourceSheet: 'manual',
     }));
+}
+
+/** Aplica las anulaciones manuales de estado (pestañas Pagos / Proyección de
+ *  Recaudo) sobre eventos que vienen de Excel: un evento marcado "pagado" a
+ *  mano se excluye del Flujo sin tocar el archivo origen. Un id ausente del
+ *  mapa se trata como "pendiente" (comportamiento normal). */
+export function filterByExcelEstado(events: CashEvent[], excelEstados: ExcelEstadoOverrides): CashEvent[] {
+  return events.filter((e) => (excelEstados[e.id] ?? 'pendiente') !== 'pagado');
 }
 
 /**

@@ -225,3 +225,11 @@ export interface ManualRecaudo {
   fecha: string;
   estado: PagoEstado;
 }
+
+// --- Anulación manual de estado sobre eventos de Excel (Pagos / Recaudo) ---
+// Excel (PAGOS FIJOS.xlsx, PROYECCION DE CARTERA.xlsx) no trae un campo de
+// estado propio — Tesorería necesita poder marcar un renglón puntual como
+// "pagado"/"cobrado" sin editar el Excel origen, para que deje de
+// proyectarse en el Flujo. Mapa CashEvent.id -> estado; ausente = pendiente
+// (el comportamiento de siempre).
+export type ExcelEstadoOverrides = Record<string, PagoEstado>;

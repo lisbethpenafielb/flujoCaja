@@ -1,5 +1,6 @@
-import type { BankAccount, CashEvent, ChequeFilters, Filters, LoadedDataset, ManualPago, ManualRecaudo } from '../types';
+import type { BankAccount, CashEvent, ChequeFilters, ExcelEstadoOverrides, Filters, LoadedDataset, ManualPago, ManualRecaudo, PagoEstado } from '../types';
 import { loadBankAccounts, saveBankAccounts } from './bankAccounts';
+import { loadExcelEstados, saveExcelEstados } from './excelEstados';
 import { loadManualLoanEntries, saveManualLoanEntries, type ManualLoanEntries } from './manualLoans';
 import { loadManualPagos, saveManualPagos } from './manualPagos';
 import { loadManualRecaudos, saveManualRecaudos } from './manualRecaudos';
@@ -24,6 +25,7 @@ interface State {
   manualLoanEntries: ManualLoanEntries;
   manualPagos: ManualPago[];
   manualRecaudos: ManualRecaudo[];
+  excelEstados: ExcelEstadoOverrides;
   syncStatus: SyncStatus;
   syncError: string | null;
   isDemo: boolean;
@@ -69,6 +71,7 @@ class Store {
     manualLoanEntries: loadManualLoanEntries(),
     manualPagos: loadManualPagos(),
     manualRecaudos: loadManualRecaudos(),
+    excelEstados: loadExcelEstados(),
     syncStatus: 'idle',
     syncError: null,
     isDemo: false,
@@ -200,6 +203,15 @@ class Store {
   removeManualRecaudo(id: string): void {
     this.state.manualRecaudos = this.state.manualRecaudos.filter((r) => r.id !== id);
     saveManualRecaudos(this.state.manualRecaudos);
+    this.emit();
+  }
+
+  /** Anula a mano el estado de un evento que viene de Excel (Pagos Fijos /
+   *  Proyección de Cartera) sin tocar el archivo origen. `pagado` lo saca
+   *  del Flujo; `pendiente` restaura el comportamiento normal. */
+  setExcelEstado(eventId: string, estado: PagoEstado): void {
+    this.state.excelEstados = { ...this.state.excelEstados, [eventId]: estado };
+    saveExcelEstados(this.state.excelEstados);
     this.emit();
   }
 }

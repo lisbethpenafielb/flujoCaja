@@ -18,6 +18,7 @@ import {
   buildWeekPeriods,
   chequesRezagados,
   computeKpis,
+  filterByExcelEstado,
   totalBankBalance,
 } from './data/engine';
 import { renderHeader, renderTabs, type TabId } from './ui/shell';
@@ -78,15 +79,17 @@ function render(): void {
   const main = h('main', { class: 'flex-1 px-6 py-6 flex flex-col gap-5 max-w-[1700px] w-full mx-auto' });
   root.appendChild(main);
 
-  const { dataset, bankAccounts, filters, chequeFilters, manualLoanEntries, manualPagos, manualRecaudos, monthlyFilter } = state;
+  const { dataset, bankAccounts, filters, chequeFilters, manualLoanEntries, manualPagos, manualRecaudos, excelEstados, monthlyFilter } = state;
   const openingBalance = totalBankBalance(bankAccounts);
   // Préstamo Perú / Préstamos Terceros, los Pagos manuales y el Recaudo
   // manual no vienen de ningún Excel: se digitan a mano y se mezclan aquí
   // como eventos más, para que KPIs/alertas/matriz los reflejen igual que un
   // cheque real. Nunca se mezclan en las pestañas de cheques (esas son, por
-  // definición, solo lo que trae BASE CHEQUES).
+  // definición, solo lo que trae BASE CHEQUES). Los renglones de Excel
+  // (Pagos Fijos / Proyección de Cartera) marcados a mano como "pagado" se
+  // excluyen aquí, antes de que alimenten el Flujo/KPIs/alertas.
   const eventsWithManual = [
-    ...dataset.events,
+    ...filterByExcelEstado(dataset.events, excelEstados),
     ...buildManualLoanEvents(manualLoanEntries),
     ...buildManualPagoEvents(manualPagos),
     ...buildManualRecaudoEvents(manualRecaudos),
@@ -213,10 +216,10 @@ function render(): void {
     main.appendChild(renderChequesPivot(buildChequesPivot(shown)));
   } else if (activeTab === 'recaudo') {
     const excelRecaudo = dataset.events.filter((e) => e.kind === 'cobranza' && e.source === 'PROYECCION DE CARTERA');
-    main.appendChild(renderRecaudoPanel(manualRecaudos, excelRecaudo));
+    main.appendChild(renderRecaudoPanel(manualRecaudos, excelRecaudo, excelEstados));
   } else if (activeTab === 'pagos') {
     const excelPagosFijos = dataset.events.filter((e) => e.kind === 'pago_fijo' && e.source === 'PAGOS FIJOS');
-    main.appendChild(renderPagosPanel(manualPagos, excelPagosFijos));
+    main.appendChild(renderPagosPanel(manualPagos, excelPagosFijos, excelEstados));
   } else if (activeTab === 'alertas') {
     const daily = buildDailyProjection(filtered, openingBalance, filters.dateFrom, projectionDays);
     main.appendChild(renderAlerts(buildAlerts(daily, filtered)));

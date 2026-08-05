@@ -157,17 +157,20 @@ export const TABS: { id: TabId; label: string; icon: IconName }[] = [
 export function renderTabs(active: TabId, onChange: (id: TabId) => void): HTMLElement {
   return h(
     'nav',
-    { class: 'flex gap-1 px-6 overflow-x-auto scrollbar-thin', style: `background:${BRAND.primaryDark}` },
-    TABS.map((t) =>
-      h(
+    { class: 'flex gap-1 px-6 py-2 overflow-x-auto scrollbar-thin', style: `background:${BRAND.primaryDark}` },
+    TABS.map((t) => {
+      const isActive = t.id === active;
+      return h(
         'button',
         {
-          class: 'inline-flex items-center gap-2 text-[13px] font-medium px-3.5 py-3 whitespace-nowrap border-b-2 transition-colors',
-          style: t.id === active ? `color:#ffffff;border-color:#ffffff` : 'color:#a9c0d6;border-color:transparent',
+          class: `tab-btn inline-flex items-center gap-2 text-[13px] font-medium px-4 py-2.5 whitespace-nowrap rounded-lg ${
+            isActive ? 'tab-btn-active' : ''
+          }`,
+          style: isActive ? `color:#ffffff;background:${BRAND.primary}` : 'color:#a9c0d6',
           onclick: () => onChange(t.id),
         },
         [icon(t.icon, { size: 15, strokeWidth: 1.75 }), t.label]
-      )
-    )
+      );
+    })
   );
 }

@@ -20,10 +20,6 @@ export function formatMoneyCompact(value: number): string {
   return compactCurrencyFormatter.format(value);
 }
 
-export function formatNumber(value: number): string {
-  return new Intl.NumberFormat('es-EC').format(value);
-}
-
 /** Convierte "12,111.11", "$2,482.94", " - ", "$-" a número. */
 export function parseExcelNumber(value: unknown): number {
   if (typeof value === 'number') return isFinite(value) ? value : 0;

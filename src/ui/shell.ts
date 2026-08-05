@@ -30,8 +30,6 @@ export function renderHeader(opts: {
   lastSync: Date | null;
   onSync: () => void;
   googleConfigured: boolean;
-  isDemo: boolean;
-  onExitDemo: () => void;
 }): HTMLElement {
   const meta = STATUS_META[opts.status];
   const busy = opts.status === 'authenticating' || opts.status === 'loading';
@@ -42,25 +40,6 @@ export function renderHeader(opts: {
   const horaActualizacion = opts.lastSync
     ? opts.lastSync.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })
     : '—';
-
-  const demoBadge = opts.isDemo
-    ? h('span', { class: 'pill', style: `background:${STATUS.warning}1f;color:#8a6200` }, [
-        h('span', { class: 'inline-block rounded-full', style: `width:7px;height:7px;background:${STATUS.warning}` }),
-        'Modo demostración',
-      ])
-    : null;
-
-  const exitDemoBtn = opts.isDemo
-    ? h(
-        'button',
-        {
-          class: 'text-xs font-medium rounded-lg px-3 py-1.5',
-          style: 'border:1px solid var(--gridline);color:var(--ink-secondary)',
-          onclick: opts.onExitDemo,
-        },
-        ['Salir de la demo']
-      )
-    : null;
 
   const statusPill = h('span', { class: 'pill', style: `background:${meta.color}1a;color:${meta.color}` }, [
     h('span', {
@@ -131,10 +110,8 @@ export function renderHeader(opts: {
           ]),
         ]),
         headerDivider(),
-        demoBadge,
-        exitDemoBtn,
-        opts.isDemo ? null : statusPill,
-        opts.isDemo ? null : syncBtn,
+        statusPill,
+        syncBtn,
       ]),
     ]
   );

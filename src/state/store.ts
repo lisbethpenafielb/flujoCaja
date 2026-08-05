@@ -28,7 +28,6 @@ interface State {
   excelEstados: ExcelEstadoOverrides;
   syncStatus: SyncStatus;
   syncError: string | null;
-  isDemo: boolean;
 }
 
 type Listener = () => void;
@@ -74,7 +73,6 @@ class Store {
     excelEstados: loadExcelEstados(),
     syncStatus: 'idle',
     syncError: null,
-    isDemo: false,
   };
 
   private listeners = new Set<Listener>();
@@ -104,18 +102,10 @@ class Store {
     this.emit();
   }
 
-  setDataset(events: CashEvent[], excludedEvents: CashEvent[], warnings: string[], isDemo = false): void {
+  setDataset(events: CashEvent[], excludedEvents: CashEvent[], warnings: string[]): void {
     this.state.dataset = { events, excludedEvents, loadedAt: new Date(), warnings };
     this.state.syncStatus = 'ready';
     this.state.syncError = null;
-    this.state.isDemo = isDemo;
-    this.emit();
-  }
-
-  exitDemo(): void {
-    this.state.dataset = null;
-    this.state.syncStatus = 'idle';
-    this.state.isDemo = false;
     this.emit();
   }
 

@@ -7,9 +7,8 @@ export interface SheetGrid {
   rows: unknown[][];
 }
 
-// `xlsx` pesa ~330KB y solo hace falta al sincronizar con Drive — la mayoría de
-// visitas solo miran el dashboard (demo o datos ya cargados), así que se importa
-// dinámicamente en vez de ir en el bundle principal. `readWorkbook` es el único
+// `xlsx` pesa ~330KB y solo hace falta al sincronizar con Drive, así que se
+// importa dinámicamente en vez de ir en el bundle principal. `readWorkbook` es el único
 // punto de entrada async; el resto de funciones de este archivo son sync y
 // asumen que ya se llamó (y esperó) a `readWorkbook` antes, como hacen los 3
 // parsers (cheques/cartera/pagosFijos) hoy.

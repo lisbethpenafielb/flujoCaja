@@ -46,7 +46,6 @@ import { renderEmptyState, renderWarningsBanner } from './ui/emptyState';
 import { h, mount } from './ui/dom';
 import { BRAND } from './ui/palette';
 import { addDays, daysBetween, monthBounds, monthKeyLabelEs, todayISO } from './utils/dates';
-import { loadDemoData } from './demo/loadDemo';
 
 const app = document.getElementById('app')!;
 let activeTab: TabId = 'resumen';
@@ -103,15 +102,11 @@ function render(): void {
       lastSync: state.dataset?.loadedAt ?? null,
       onSync: () => void syncFromDrive(),
       googleConfigured,
-      isDemo: state.isDemo,
-      onExitDemo: () => store.exitDemo(),
     })
   );
 
   if (!state.dataset) {
-    root.appendChild(
-      renderEmptyState(state.syncStatus, state.syncError, () => void syncFromDrive(), googleConfigured, loadDemoData)
-    );
+    root.appendChild(renderEmptyState(state.syncStatus, state.syncError, () => void syncFromDrive(), googleConfigured));
     return;
   }
 
@@ -122,6 +117,7 @@ function render(): void {
 
   const { dataset, bankAccounts, filters, chequeFilters, manualLoanEntries, manualPagos, manualRecaudos, excelEstados, monthlyFilter } = state;
   const openingBalance = totalBankBalance(bankAccounts);
+  const bankBalanceKnown = bankAccounts.some((a) => a.balance !== null);
   // Préstamo Perú / Préstamos Terceros, los Pagos manuales y el Recaudo
   // manual no vienen de ningún Excel: se digitan a mano y se mezclan aquí
   // como eventos más, para que KPIs/alertas/matriz los reflejen igual que un
@@ -180,7 +176,11 @@ function render(): void {
     main.appendChild(
       h('div', { class: 'grid grid-cols-1 xl:grid-cols-[320px_1fr] gap-4 items-stretch' }, [
         h('div', {}, [
-          renderKpiCards(kpis, { extras: { cobranzaTrend, chequesTrend, pagosFijosTrend, saldoNetoTrend, chequesPendientes } }),
+          renderKpiCards(kpis, {
+            extras: { cobranzaTrend, chequesTrend, pagosFijosTrend, saldoNetoTrend, chequesPendientes },
+            bankAccountsCount: bankAccounts.length,
+            bankBalanceKnown,
+          }),
         ]),
         h('div', { class: 'card p-5 flex flex-col' }, [
           h('div', { class: 'mb-4' }, [
@@ -215,7 +215,7 @@ function render(): void {
   } else if (activeTab === 'diario') {
     const daily = buildDailyProjection(filtered, openingBalance, filters.dateFrom, projectionDays);
     const kpis = computeKpis(daily, openingBalance);
-    main.appendChild(renderKpiCards(kpis, { compact: true }));
+    main.appendChild(renderKpiCards(kpis, { compact: true, bankBalanceKnown }));
     // Sin límite inferior de fecha: los eventos anteriores a "Desde" deben
     // seguir disponibles para poder caer en la columna REZAGADOS (backlog).
     const forMatrix = applyFilters(eventsWithManual, { ...filters, dateFrom: '' });
@@ -225,6 +225,7 @@ function render(): void {
       renderTreasuryMatrix(matrix, 'Flujo de Caja Diario', 'Bancos + movimientos por día, con arrastre de saldo', {
         onManualEdit: (category, date, value) => store.setManualLoanEntry(category, date, value),
         onBankBalanceEdit: (id, value) => store.setBankBalance(id, value),
+        bankBalanceKnown,
       })
     );
   } else if (activeTab === 'mensual') {
@@ -236,13 +237,14 @@ function render(): void {
     const daysInMonth = daysBetween(monthStart, monthEnd) + 1;
     const monthlyDaily = buildDailyProjection(eventsWithManual, openingBalance, monthStart, daysInMonth);
     const monthlyKpis = computeKpis(monthlyDaily, openingBalance);
-    main.appendChild(renderKpiCards(monthlyKpis, { compact: true }));
+    main.appendChild(renderKpiCards(monthlyKpis, { compact: true, bankBalanceKnown }));
     const periods = buildWeekPeriods(monthStart, monthEnd);
     main.appendChild(renderWeeklySummaryCards(monthlyDaily, periods));
     const matrix = buildTreasuryMatrix(eventsWithManual, bankAccounts, periods);
     main.appendChild(
       renderTreasuryMatrix(matrix, 'Flujo de Caja Mensual', `Semanas de ${monthKeyLabelEs(monthlyFilter)}, con arrastre de saldo`, {
         onBankBalanceEdit: (id, value) => store.setBankBalance(id, value),
+        bankBalanceKnown,
       })
     );
   } else if (activeTab === 'cheques') {
@@ -290,7 +292,7 @@ function render(): void {
     const excelPagosFijos = dataset.events.filter((e) => e.kind === 'pago_fijo' && e.source === 'PAGOS FIJOS');
     main.appendChild(renderPagosPanel(manualPagos, excelPagosFijos, excelEstados));
   } else if (activeTab === 'configuracion') {
-    main.appendChild(renderConfigPanel());
+    main.appendChild(renderConfigPanel(bankAccounts.length));
   }
 
   const footer = h('footer', { class: 'px-6 py-4 text-xs text-center', style: 'color:var(--ink-muted)' }, [

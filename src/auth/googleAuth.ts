@@ -58,11 +58,6 @@ export function getAccessToken(): string | null {
   return hasValidToken() ? accessToken : null;
 }
 
-export function signOut(): void {
-  accessToken = null;
-  tokenExpiresAt = 0;
-}
-
 /** Pide (o renueva) el token de acceso. Muestra el consentimiento de Google solo
  *  la primera vez o cuando el token expiró. */
 export async function requestAccessToken(interactive = true): Promise<string> {

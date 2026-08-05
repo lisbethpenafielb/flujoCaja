@@ -7,8 +7,7 @@ export function renderEmptyState(
   status: SyncStatus,
   error: string | null,
   onSync: () => void,
-  googleConfigured: boolean,
-  onDemo: () => void
+  googleConfigured: boolean
 ): HTMLElement {
   if (status === 'error') {
     return h('div', { class: 'card p-10 flex flex-col items-center text-center gap-3 max-w-xl mx-auto mt-10' }, [
@@ -59,17 +58,6 @@ export function renderEmptyState(
       },
       ['Conectar con Google Drive']
     ),
-    h('div', { class: 'flex items-center gap-3 w-full mt-4', style: 'color:var(--ink-muted)' }, [
-      h('div', { style: 'flex:1;height:1px;background:var(--gridline)' }),
-      h('span', { class: 'text-xs' }, ['o']),
-      h('div', { style: 'flex:1;height:1px;background:var(--gridline)' }),
-    ]),
-    h('button', { class: 'text-sm font-medium rounded-lg px-4 py-2 mt-1', style: 'border:1px solid var(--gridline);color:var(--ink-primary)', onclick: onDemo }, [
-      'Ver demo con datos simulados',
-    ]),
-    h('p', { class: 'text-xs', style: 'color:var(--ink-muted)' }, [
-      'Explora diseño, navegación y funcionalidades sin conectar Drive. Los datos son ficticios.',
-    ]),
   ]);
 }
 

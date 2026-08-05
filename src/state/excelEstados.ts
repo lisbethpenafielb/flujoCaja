@@ -1,4 +1,5 @@
 import type { ExcelEstadoOverrides } from '../types';
+import { loadJson, saveJson } from './sessionStorageJson';
 
 // Igual que los pagos/recaudo manuales: esta anulación no se escribe en
 // ningún Excel. Tesorería la gestiona a mano en las pestañas Pagos /
@@ -7,19 +8,9 @@ import type { ExcelEstadoOverrides } from '../types';
 const STORAGE_KEY = 'flujocaja.estadosExcel.v1';
 
 export function loadExcelEstados(): ExcelEstadoOverrides {
-  try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as ExcelEstadoOverrides;
-  } catch {
-    // sessionStorage no disponible o corrupto: se ignora y se parte de cero.
-  }
-  return {};
+  return loadJson<ExcelEstadoOverrides>(STORAGE_KEY, {});
 }
 
 export function saveExcelEstados(estados: ExcelEstadoOverrides): void {
-  try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(estados));
-  } catch {
-    // Si el storage está lleno o bloqueado, el valor sigue vivo en memoria.
-  }
+  saveJson(STORAGE_KEY, estados);
 }

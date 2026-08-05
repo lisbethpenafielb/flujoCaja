@@ -14,7 +14,7 @@ function infoRow(label: string, value: string): HTMLElement {
  *  restricciones de esta iteración: sin cambios de lógica ni arquitectura).
  *  Documenta las fuentes de datos y el estado de las excepciones manuales
  *  del módulo, para que Gerencia sepa de un vistazo de dónde sale cada dato. */
-export function renderConfigPanel(): HTMLElement {
+export function renderConfigPanel(bankAccountsCount: number): HTMLElement {
   return h('div', { class: 'grid grid-cols-1 lg:grid-cols-2 gap-4' }, [
     h('div', { class: 'card p-5 flex flex-col gap-1' }, [
       h('div', { class: 'flex items-center gap-2.5 mb-2' }, [
@@ -35,7 +35,7 @@ export function renderConfigPanel(): HTMLElement {
         ]),
         h('h3', { class: 'font-semibold', style: 'font-size:15px;color:var(--ink-primary)' }, ['Datos de ingreso manual']),
       ]),
-      infoRow('Saldos bancarios (6 bancos)', 'Sesión del navegador'),
+      infoRow(`Saldos bancarios (${bankAccountsCount} banco${bankAccountsCount === 1 ? '' : 's'})`, 'Sesión del navegador'),
       infoRow('Préstamo Perú / Préstamos Terceros', 'Sesión del navegador'),
       infoRow('Persistencia', 'No se guarda en Excel ni en servidor'),
       h('p', { class: 'text-xs pt-3', style: 'color:var(--ink-muted)' }, [

@@ -16,7 +16,7 @@ import type {
   TreasuryRow,
   VendorPivot,
 } from '../types';
-import { PROJECTION_DAYS, SPECIAL_CHEQUE_ROWS } from '../config';
+import { LIQUIDEZ_RISK_THRESHOLD_DAYS, PROJECTION_DAYS, SPECIAL_CHEQUE_ROWS } from '../config';
 import {
   addDays,
   daysBetween,
@@ -127,7 +127,7 @@ export function computeKpis(daily: DailyBucket[], openingBalance: number): Kpis 
   const negativeDays = daily.filter((d) => d.closingBalance < 0).length;
   let riesgo: Kpis['riesgo'] = 'bajo';
   if (negativeDays > 0) riesgo = 'alto';
-  else if (liquidezDias !== null && liquidezDias < 7) riesgo = 'medio';
+  else if (liquidezDias !== null && liquidezDias < LIQUIDEZ_RISK_THRESHOLD_DAYS) riesgo = 'medio';
 
   return {
     saldoBancario: openingBalance,
@@ -422,7 +422,7 @@ export function buildTreasuryMatrix(events: CashEvent[], bankAccounts: BankAccou
 
 /** MES/AÑO de BASE CHEQUES (columnas J/K) tal como Tesorería las registró —
  *  con respaldo a la fecha del cheque solo para eventos que no traen esas
- *  columnas (demo, préstamos manuales). */
+ *  columnas (préstamos manuales). */
 export function chequeMes(e: CashEvent): string {
   return String(e.meta?.mes ?? monthNameEs(e.date));
 }

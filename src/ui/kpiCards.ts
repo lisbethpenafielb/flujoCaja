@@ -105,17 +105,29 @@ export interface KpiExtras {
   chequesPendientes?: number;
 }
 
-export function renderKpiCards(kpis: Kpis, opts: { compact?: boolean; extras?: KpiExtras } = {}): HTMLElement {
+export function renderKpiCards(
+  kpis: Kpis,
+  opts: { compact?: boolean; extras?: KpiExtras; bankAccountsCount?: number; bankBalanceKnown?: boolean } = {}
+): HTMLElement {
   const compact = opts.compact ?? false;
   const extras = opts.extras ?? {};
+  // Saldo bancario es ingreso manual (ver config.ts) — al abrir la sesión, antes de
+  // que Tesorería digite el saldo del día, la suma da 0 pero eso no significa "cero
+  // dólares en el banco": significa que el dato todavía no existe. Mostrar "$0,00"
+  // ahí sería fabricar información. `bankBalanceKnown` distingue ambos casos.
+  const bankBalanceKnown = opts.bankBalanceKnown ?? true;
 
   const cards: KpiCardOpts[] = [
     {
       label: 'Saldo Bancario',
-      value: formatMoney(kpis.saldoBancario),
+      value: bankBalanceKnown ? formatMoney(kpis.saldoBancario) : 'Información no disponible',
       iconName: 'bank',
       accent: BRAND.primary,
-      caption: 'Consolidado, 6 bancos',
+      caption: !bankBalanceKnown
+        ? 'Ingresa el saldo en Flujo Diario'
+        : opts.bankAccountsCount !== undefined
+        ? `Consolidado, ${opts.bankAccountsCount} banco${opts.bankAccountsCount === 1 ? '' : 's'}`
+        : 'Consolidado',
     },
     {
       label: 'Cobranza Esperada',

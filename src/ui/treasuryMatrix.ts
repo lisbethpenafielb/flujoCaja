@@ -64,6 +64,9 @@ export interface TreasuryMatrixOptions {
   /** Cuando se pasa, la celda "Rezagados" de las filas `kind: 'banco'` se
    *  vuelve un input editable — reemplaza a la extinta pestaña Bancos. */
   onBankBalanceEdit?: (accountId: string, value: number | null) => void;
+  /** false cuando Tesorería todavía no digitó ningún saldo bancario esta sesión:
+   *  el total en 0 no es un saldo real, es la ausencia del dato. */
+  bankBalanceKnown?: boolean;
 }
 
 export function renderTreasuryMatrix(matrix: TreasuryMatrix, title: string, subtitle: string, opts: TreasuryMatrixOptions = {}): HTMLElement {
@@ -200,9 +203,16 @@ export function renderTreasuryMatrix(matrix: TreasuryMatrix, title: string, subt
       ]),
       h('div', { class: 'text-right' }, [
         h('p', { class: 'text-xs', style: 'color:var(--ink-muted)' }, ['Total bancos (rezagados)']),
-        h('p', { class: 'font-semibold tabular-nums', style: `font-size:18px;color:${totalRezagadosBancos < 0 ? STATUS.critical : 'var(--ink-primary)'}` }, [
-          formatMoney(totalRezagadosBancos),
-        ]),
+        h(
+          'p',
+          {
+            class: 'font-semibold tabular-nums',
+            style: `font-size:${opts.bankBalanceKnown === false ? '13px' : '18px'};color:${
+              opts.bankBalanceKnown === false ? 'var(--ink-muted)' : totalRezagadosBancos < 0 ? STATUS.critical : 'var(--ink-primary)'
+            }`,
+          },
+          [opts.bankBalanceKnown === false ? 'Información no disponible' : formatMoney(totalRezagadosBancos)]
+        ),
       ]),
     ]),
     h('div', { class: 'overflow-auto scrollbar-thin', style: 'max-height:600px' }, [

@@ -52,11 +52,10 @@ export const SPECIAL_CHEQUE_ROWS: { label: string; keywords: string[]; manual?: 
   { label: 'PRESTAMOS TERCEROS', keywords: ['PRESTAMOS TERCEROS', 'PRESTAMO TERCEROS'], manual: true },
 ];
 
-// Umbrales del semáforo de riesgo diario, como múltiplo del promedio de egresos
-// diarios (cheques + pagos fijos) de la proyección cargada.
-export const RISK_THRESHOLDS = {
-  bajoMultiplier: 0, // saldo < 0 => negativo (rojo)
-  medioMultiplier: 1, // saldo < 1x egreso diario promedio => bajo (amarillo)
-};
+// Umbral del semáforo de riesgo (ver computeKpis en engine.ts): con al menos un
+// día de saldo negativo el riesgo siempre es "alto"; si no, "medio" cuando la
+// liquidez proyectada (saldo bancario ÷ egreso diario promedio) cubre menos de
+// esta cantidad de días.
+export const LIQUIDEZ_RISK_THRESHOLD_DAYS = 7;
 
 export const PROJECTION_DAYS = 30;

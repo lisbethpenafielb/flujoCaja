@@ -13,23 +13,29 @@ navegador.
 
 ## Pestañas
 
-- **Resumen Ejecutivo** — KPIs, semáforo de riesgo y alertas.
-- **Flujo Diario / Flujo Semanal** — Flujo de caja en formato matriz (filas =
+- **Dashboard** — KPIs, semáforo de riesgo, gráfico de evolución proyectada,
+  alertas prioritarias y pronósticos a 0/7/15/30/60/90 días.
+- **Flujo Diario / Flujo Mensual** — Flujo de caja en formato matriz (filas =
   bancos + partidas de movimiento, columnas = día o semana), con columna
   REZAGADOS (backlog anterior a la fecha "Desde") y arrastre de saldo en
-  cascada, igual a la plantilla de control que ya usa Tesorería. Las filas
-  Préstamo Perú y Préstamos Terceros se digitan a mano por día en Flujo
-  Diario (esa información no existe en BASE CHEQUES); Flujo Semanal solo
-  muestra el acumulado, de solo lectura.
-- **Cheques Rezagados** — cheques con fecha anterior a hoy aún no cobrados.
-  Filtros: Estado, Banco, Estatus 2, Negociación.
-- **Cheques Diarios** — todos los cheques, ordenados por fecha. Filtros:
-  Estado, Mes, Banco, Negociación, Año, Semana.
-- **Tabla de Cheques** — tabla dinámica Año › Mes › Día con la suma de
-  cheques no cobrados; clic en un día para desplegar el detalle. Filtros:
-  Estado, Banco, Negociación, Semana.
-- **Saldos Bancarios** — ingreso manual de los 6 bancos (ver excepción abajo).
-- **Alertas** — alertas automáticas del período filtrado.
+  cascada, igual a la plantilla de control que ya usa Tesorería. El saldo de
+  cada banco (columna REZAGADOS de las filas `SALDO <BANCO>`) y las filas
+  Préstamo Perú / Préstamos Terceros son celdas editables — ver "Datos de
+  ingreso manual" abajo.
+- **Cheques** — dos tablas: "Cheques Rezagados" (fecha anterior a hoy, aún no
+  cobrados; filtros Estado/Banco/Estatus 2/Negociación) y "Cheques Diarios"
+  (todos los cheques, tabla dinámica Proveedor × Fecha; filtros
+  Estado/Banco/Desde/Hasta/Mes/Año/Negociación).
+- **Tabla Cheques** — tabla dinámica Año › Mes › Día con la suma de cheques
+  no cobrados; clic para desplegar el detalle. Filtros: Estado, Banco,
+  Negociación.
+- **Proyección de Recaudo** — cobranza proyectada desde PROYECCION DE
+  CARTERA.xlsx (marcable como "pagado"/ya cobrado sin editar el Excel) más
+  recaudo manual (cobros que no vienen de ese archivo).
+- **Pagos** — igual que Recaudo, pero del lado de egresos: PAGOS FIJOS.xlsx
+  más pagos manuales recurrentes.
+- **Configuración** — panel informativo: de dónde sale cada dato (fuentes de
+  Excel, ingreso manual) y su persistencia.
 
 ## Arquitectura
 
@@ -47,7 +53,12 @@ src/
     sync.ts               Orquesta auth + descarga + parseo + store
   state/
     store.ts              Estado central + pub/sub (sin framework)
-    bankAccounts.ts        Saldos bancarios (sessionStorage, no persistente)
+    sessionStorageJson.ts  Helper compartido de persistencia en sessionStorage
+    bankAccounts.ts,       Saldos bancarios, préstamos manuales, pagos y
+    manualLoans.ts,        recaudo manuales, anulaciones de estado sobre
+    manualPagos.ts,        renglones de Excel — todo sessionStorage, no
+    manualRecaudos.ts,     persistente (ver "Datos de ingreso manual" abajo)
+    excelEstados.ts
   ui/                     Render funcional (KPIs, tablas, matriz, filtros...)
 ```
 
@@ -99,6 +110,13 @@ pero el resto de la app funciona con la interfaz vacía.
 
 ```bash
 npm run dev
+```
+
+## Pruebas
+
+```bash
+npm test          # motor de cálculo (proyección diaria, KPIs/riesgo,
+                   # alertas, matriz de tesorería, reglas manuales/Excel)
 ```
 
 ## Producción
@@ -178,15 +196,24 @@ objeto `COL` al inicio de `cheques.ts` con las nuevas letras.
 
 ## Datos de ingreso manual (excepciones del módulo)
 
-Dos cosas **no provienen de ningún Excel** y se ingresan a mano; ambas viven
-solo en `sessionStorage` del navegador y se pierden al cerrar la pestaña —
-nunca se escriben en disco, en Excel ni se envían a ningún servidor:
+Cuatro cosas **no provienen de ningún Excel** y se ingresan a mano; todas
+viven solo en `sessionStorage` del navegador y se pierden al cerrar la
+pestaña — nunca se escriben en disco, en Excel ni se envían a ningún
+servidor. Ninguna se sincroniza entre dispositivos ni sesiones: cada equipo
+que abre el módulo empieza sin estos valores y hay que volver a digitarlos.
 
-- **Saldos de los 6 bancos** — pestaña "Saldos Bancarios".
+- **Saldos de los 6 bancos** — celda REZAGADOS de cada fila `SALDO <BANCO>`
+  en Flujo Diario / Flujo Mensual. Mientras no se ingresa ningún saldo, el
+  Dashboard muestra "Información no disponible" en vez de $0,00 (no inventa
+  un saldo cero).
 - **Préstamo Perú y Préstamos Terceros** — celdas editables por día en la
   pestaña "Flujo Diario". Internamente se tratan como un cheque más (mismo
-  motor de cálculo), pero nunca se mezclan con BASE CHEQUES en las pestañas
-  de cheques (Rezagados, Diarios, Tabla) — esas son siempre 100% Excel.
+  motor de cálculo), pero nunca se mezclan con BASE CHEQUES en la pestaña
+  Cheques — esa es siempre 100% Excel.
+- **Pagos manuales** — pestaña "Pagos", para gastos recurrentes que PAGOS
+  FIJOS.xlsx no cubre (ver limitación conocida más abajo).
+- **Recaudo manual** — pestaña "Proyección de Recaudo", para cobros
+  proyectados que no vienen de PROYECCION DE CARTERA.xlsx.
 
 ## Cheques ya cobrados
 

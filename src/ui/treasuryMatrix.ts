@@ -6,6 +6,14 @@ import { STATUS } from './palette';
 const DETAIL_W = 224;
 const REZAGADOS_W = 116;
 
+// Sombra que marca el borde de las columnas "congeladas" (Detalle/Rezagados a la
+// izquierda, Total a la derecha). Sin esto, al hacer scroll horizontal el texto de
+// la columna de datos que queda debajo se corta a mitad de carácter sin ninguna
+// pista visual de que es una columna fija superpuesta — parece un glitch de layout
+// en vez de un panel congelado intencional (como el de Excel).
+const FROZEN_EDGE_RIGHT = 'box-shadow:4px 0 6px -4px rgba(15,23,42,0.25)';
+const FROZEN_EDGE_LEFT = 'box-shadow:-4px 0 6px -4px rgba(15,23,42,0.25)';
+
 function fmt(v: number | null): string {
   if (v === null) return '—';
   if (v === 0) return '-';
@@ -69,14 +77,14 @@ export function renderTreasuryMatrix(matrix: TreasuryMatrix, title: string, subt
       cellOpts.sticky === 'left'
         ? `position:sticky;left:0;z-index:20;width:${DETAIL_W}px;min-width:${DETAIL_W}px`
         : cellOpts.sticky === 'left2'
-        ? `position:sticky;left:${DETAIL_W}px;z-index:20;width:${REZAGADOS_W}px;min-width:${REZAGADOS_W}px`
+        ? `position:sticky;left:${DETAIL_W}px;z-index:20;width:${REZAGADOS_W}px;min-width:${REZAGADOS_W}px;${FROZEN_EDGE_RIGHT}`
         : cellOpts.sticky === 'right'
-        ? 'position:sticky;right:0;z-index:20'
+        ? `position:sticky;right:0;z-index:20;${FROZEN_EDGE_LEFT}`
         : '';
     return h(
       'th',
       {
-        class: 'text-[11px] font-semibold uppercase tracking-wide px-3 py-2.5 whitespace-nowrap',
+        class: `text-[11px] font-semibold uppercase tracking-wide px-3 py-2.5 whitespace-nowrap${cellOpts.sticky ? ' tm-sticky-col' : ''}`,
         style: `background:${cellOpts.bg ?? 'var(--surface)'};color:${cellOpts.color ?? 'var(--ink-muted)'};text-align:${cellOpts.align ?? 'right'};border-bottom:1px solid var(--gridline);position:sticky;top:0;z-index:10;${stickyStyle}`,
       },
       [text]
@@ -150,7 +158,7 @@ export function renderTreasuryMatrix(matrix: TreasuryMatrix, title: string, subt
       h(
         'td',
         {
-          class: 'text-sm px-3 py-2.5 whitespace-nowrap',
+          class: 'text-sm px-3 py-2.5 whitespace-nowrap tm-sticky-col',
           style: `${style.label};background:${style.bgSolid};position:sticky;left:0;z-index:5;width:${DETAIL_W}px;min-width:${DETAIL_W}px`,
         },
         [row.label]
@@ -158,8 +166,8 @@ export function renderTreasuryMatrix(matrix: TreasuryMatrix, title: string, subt
       h(
         'td',
         {
-          class: bankEditable ? 'px-1.5 py-1' : 'tabular-nums text-sm px-3 py-2.5 text-right',
-          style: `${style.value};background:${style.bgSolid};position:sticky;left:${DETAIL_W}px;z-index:5;width:${REZAGADOS_W}px;min-width:${REZAGADOS_W}px`,
+          class: `tm-sticky-col ${bankEditable ? 'px-1.5 py-1' : 'tabular-nums text-sm px-3 py-2.5 text-right'}`,
+          style: `${style.value};background:${style.bgSolid};position:sticky;left:${DETAIL_W}px;z-index:5;width:${REZAGADOS_W}px;min-width:${REZAGADOS_W}px;${FROZEN_EDGE_RIGHT}`,
         },
         [bankEditable ? bankBalanceInput(row.bankAccountId!, row.rezagados) : fmt(row.rezagados)]
       ),
@@ -167,8 +175,8 @@ export function renderTreasuryMatrix(matrix: TreasuryMatrix, title: string, subt
       h(
         'td',
         {
-          class: 'tabular-nums text-sm px-3 py-2.5 text-right font-semibold',
-          style: `${style.value};background:${row.kind === 'flujoDisponible' ? '#fbe8c6' : style.bgSolid};position:sticky;right:0;z-index:5`,
+          class: 'tabular-nums text-sm px-3 py-2.5 text-right font-semibold tm-sticky-col',
+          style: `${style.value};background:${row.kind === 'flujoDisponible' ? '#fbe8c6' : style.bgSolid};position:sticky;right:0;z-index:5;${FROZEN_EDGE_LEFT}`,
         },
         [fmt(row.total)]
       ),

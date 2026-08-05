@@ -2,7 +2,7 @@
 @import "@fontsource-variable/inter";
 
 /* ============================================================================
-   Sistema de diseño — Identidad ejecutiva TCI Corporate Analytics
+   Sistema de diseño — Centro de Control Transcomerinter
    Paleta cerrada (no introducir tonos fuera de esta lista):
      fondo #F4F6F9 · tarjetas #FFFFFF · primario #0F4C81 · secundario #2E7D32
      advertencia #F9A825 · error #C62828 · texto #1F2937 / #6B7280 · borde #E5E7EB
@@ -163,6 +163,23 @@ body {
 /* Filas basadas en div (árboles de tabla dinámica, tarjetas) en vez de <tr>. */
 div.tm-row:hover {
   filter: brightness(0.97);
+}
+
+/* Columnas "congeladas" del Flujo de Caja (Detalle/Rezagados/Total, ver
+   treasuryMatrix.ts): en pantallas angostas ya no caben las 3 a la vez sin
+   tapar la única columna de datos visible — la de la derecha (Total) termina
+   pintándose encima de Rezagados, escondiendo los inputs de saldo bancario.
+   Por debajo de 640px se desactiva el sticky y la tabla se vuelve un scroll
+   horizontal simple, sin columnas superpuestas. */
+@media (max-width: 640px) {
+  .tm-sticky-col {
+    /* `left`/`right` en auto anulan el sticky horizontal sin tocar el sticky
+       vertical (top:0) que sigue fijando el encabezado al scrollear la tabla
+       hacia abajo. */
+    left: auto !important;
+    right: auto !important;
+    box-shadow: none !important;
+  }
 }
 
 /* Pestaña activa en la barra superior: fondo sólido en vez de solo

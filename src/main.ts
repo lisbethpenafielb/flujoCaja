@@ -26,7 +26,6 @@ import { renderHeader, renderTabs, type TabId } from './ui/shell';
 import { computeTrend, renderKpiCards } from './ui/kpiCards';
 import { renderRiskCard } from './ui/riskCard';
 import { renderExecutiveSummary } from './ui/executiveSummary';
-import { renderBankBalanceDistribution } from './ui/bankBalanceChart';
 import { renderPaymentCoverageCard } from './ui/paymentCoverageCard';
 import { renderIncomeVsExpenseCard } from './ui/incomeExpenseCard';
 import { renderDashboardChart } from './ui/dashboardChart';
@@ -143,8 +142,7 @@ function render(): void {
     );
     main.appendChild(renderRiskCard(kpis, negativeDays));
     main.appendChild(
-      h('div', { class: 'grid grid-cols-1 lg:grid-cols-3 gap-4' }, [
-        renderBankBalanceDistribution(bankAccounts),
+      h('div', { class: 'grid grid-cols-1 lg:grid-cols-2 gap-4' }, [
         renderIncomeVsExpenseCard(daily),
         renderPaymentCoverageCard(coverageRatio(daily)),
       ])

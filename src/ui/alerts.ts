@@ -1,4 +1,5 @@
 import type { AlertLevel, CashAlert } from '../types';
+import { formatMoney } from '../utils/format';
 import { h } from './dom';
 import { icon, type IconName } from './icons';
 import { BRAND, STATUS } from './palette';
@@ -33,8 +34,9 @@ function suggestedAction(alert: CashAlert): string {
   return 'Revisar el detalle en el Flujo de Caja.';
 }
 
-function alertCard(alert: CashAlert, priority: Priority, compact: boolean): HTMLElement {
+function alertCard(alert: CashAlert, priority: Priority, compact: boolean, deficitAmount?: number | null): HTMLElement {
   const meta = PRIORITY_META[priority];
+  const showDeficit = alert.id === 'saldo-negativo' && deficitAmount !== undefined && deficitAmount !== null;
   return h(
     'div',
     {
@@ -46,6 +48,11 @@ function alertCard(alert: CashAlert, priority: Priority, compact: boolean): HTML
       h('div', { class: 'min-w-0' }, [
         h('p', { class: 'font-semibold', style: `font-size:${compact ? '12.5px' : '13.5px'};color:var(--ink-primary)` }, [alert.title]),
         h('p', { class: 'text-xs mt-0.5', style: 'color:var(--ink-secondary)' }, [alert.detail]),
+        showDeficit
+          ? h('p', { class: 'text-xs mt-1 font-semibold', style: `color:${meta.color}` }, [
+              `Faltan ${formatMoney(Math.abs(deficitAmount!))} en el punto más bajo para mantener el saldo en positivo.`,
+            ])
+          : null,
         compact
           ? null
           : h('p', { class: 'text-xs mt-1.5 flex items-center gap-1.5 font-medium', style: `color:${meta.color}` }, [
@@ -71,7 +78,7 @@ function emptyState(): HTMLElement {
   ]);
 }
 
-export function renderAlerts(alerts: CashAlert[], opts: { compact?: boolean; title?: string } = {}): HTMLElement {
+export function renderAlerts(alerts: CashAlert[], opts: { compact?: boolean; title?: string; deficitAmount?: number | null } = {}): HTMLElement {
   const compact = opts.compact ?? false;
 
   if (alerts.length === 0) return emptyState();
@@ -95,7 +102,7 @@ export function renderAlerts(alerts: CashAlert[], opts: { compact?: boolean; tit
           String(items.length),
         ]),
       ]),
-      h('div', { class: 'flex flex-col gap-2' }, items.map((a) => alertCard(a, p, compact))),
+      h('div', { class: 'flex flex-col gap-2' }, items.map((a) => alertCard(a, p, compact, opts.deficitAmount))),
     ]);
   });
 

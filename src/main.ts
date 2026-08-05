@@ -21,9 +21,14 @@ import {
   filterByExcelEstado,
   totalBankBalance,
 } from './data/engine';
+import { buildExecutiveSummary, coverageRatio, deficitMagnitude } from './data/derived';
 import { renderHeader, renderTabs, type TabId } from './ui/shell';
 import { computeTrend, renderKpiCards } from './ui/kpiCards';
 import { renderRiskCard } from './ui/riskCard';
+import { renderExecutiveSummary } from './ui/executiveSummary';
+import { renderBankBalanceDistribution } from './ui/bankBalanceChart';
+import { renderPaymentCoverageCard } from './ui/paymentCoverageCard';
+import { renderIncomeVsExpenseCard } from './ui/incomeExpenseCard';
 import { renderDashboardChart } from './ui/dashboardChart';
 import { renderTreasuryMatrix } from './ui/treasuryMatrix';
 import { renderWeeklySummaryCards } from './ui/weeklySummaryCards';
@@ -125,12 +130,25 @@ function render(): void {
     const previousDaily = buildDailyProjection(forComparison, openingBalance, previousStart, projectionDays);
     const previousKpis = computeKpis(previousDaily, openingBalance);
     const cobranzaTrend = computeTrend(kpis.cobranzaEsperada, previousKpis.cobranzaEsperada, 'vs período anterior', 'up');
+    const chequesTrend = computeTrend(kpis.chequesProgramados, previousKpis.chequesProgramados, 'vs período anterior', 'down');
+    const pagosFijosTrend = computeTrend(kpis.pagosFijos, previousKpis.pagosFijos, 'vs período anterior', 'down');
+    const saldoNetoTrend = computeTrend(kpis.saldoNetoProyectado, previousKpis.saldoNetoProyectado, 'vs período anterior', 'up');
     // Mismo universo de cheques que ya contribuyó a kpis.chequesProgramados
     // (DailyBucket.events ya viene filtrado por buildDailyProjection).
     const chequesPendientes = daily.reduce((n, d) => n + d.events.filter((e) => e.kind === 'cheque').length, 0);
 
-    main.appendChild(renderKpiCards(kpis, { extras: { cobranzaTrend, chequesPendientes } }));
+    main.appendChild(renderExecutiveSummary(buildExecutiveSummary(kpis, daily)));
+    main.appendChild(
+      renderKpiCards(kpis, { extras: { cobranzaTrend, chequesTrend, pagosFijosTrend, saldoNetoTrend, chequesPendientes } })
+    );
     main.appendChild(renderRiskCard(kpis, negativeDays));
+    main.appendChild(
+      h('div', { class: 'grid grid-cols-1 lg:grid-cols-3 gap-4' }, [
+        renderBankBalanceDistribution(bankAccounts),
+        renderIncomeVsExpenseCard(daily),
+        renderPaymentCoverageCard(coverageRatio(daily)),
+      ])
+    );
     main.appendChild(
       h('div', { class: 'grid grid-cols-1 xl:grid-cols-[7fr_3fr] gap-4 items-start' }, [
         h('div', { class: 'card p-5' }, [
@@ -140,7 +158,7 @@ function render(): void {
           ]),
           renderDashboardChart(daily),
         ]),
-        renderAlerts(alerts, { compact: true, title: 'Alertas prioritarias' }),
+        renderAlerts(alerts, { compact: true, title: 'Alertas prioritarias', deficitAmount: deficitMagnitude(daily) }),
       ])
     );
   } else if (activeTab === 'diario') {

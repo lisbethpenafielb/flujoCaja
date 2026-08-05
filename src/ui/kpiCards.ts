@@ -59,9 +59,11 @@ function kpiCard(opts: KpiCardOpts, compact: boolean): HTMLElement {
           h('span', { style: `color:var(--ink-muted);font-size:${compact ? '11px' : '12.5px'}` }, [opts.trend!.caption]),
         ]);
       })()
-    : opts.caption
-    ? h('p', { class: 'text-xs', style: 'color:var(--ink-muted)' }, [opts.caption])
     : null;
+  // La tendencia y el caption no son mutuamente excluyentes: la tendencia
+  // aporta la variación (▲/▼ %), el caption sigue aportando contexto propio
+  // (ej. "Deuda IESS (ver aviso)") que no se debe perder al agregar una.
+  const captionChip = opts.caption ? h('p', { class: 'text-xs', style: 'color:var(--ink-muted)' }, [opts.caption]) : null;
 
   if (compact) {
     return h('div', { class: 'card card-hover px-3.5 py-3 flex items-center gap-3 animate-fade-in' }, [
@@ -82,6 +84,7 @@ function kpiCard(opts: KpiCardOpts, compact: boolean): HTMLElement {
       opts.value,
     ]),
     trendChip,
+    captionChip,
   ]);
 }
 
@@ -91,6 +94,9 @@ export interface KpiExtras {
    *  su lógica — ver main.ts). Ausente cuando no aplica (ej. Saldo Bancario
    *  es un valor manual sin serie histórica; no se fabrica un porcentaje). */
   cobranzaTrend?: KpiTrend | null;
+  chequesTrend?: KpiTrend | null;
+  pagosFijosTrend?: KpiTrend | null;
+  saldoNetoTrend?: KpiTrend | null;
   chequesPendientes?: number;
 }
 
@@ -112,13 +118,14 @@ export function renderKpiCards(kpis: Kpis, opts: { compact?: boolean; extras?: K
       iconName: 'inflow',
       accent: STATUS.good,
       trend: extras.cobranzaTrend,
-      caption: extras.cobranzaTrend ? undefined : 'Próximos días',
+      caption: 'Próximos días',
     },
     {
       label: 'Cheques Programados',
       value: formatMoney(kpis.chequesProgramados),
       iconName: 'outflowCheck',
       accent: '#0F4C81',
+      trend: extras.chequesTrend,
       caption: extras.chequesPendientes !== undefined ? `${extras.chequesPendientes} pendientes` : 'Próximos días',
     },
     {
@@ -126,6 +133,7 @@ export function renderKpiCards(kpis: Kpis, opts: { compact?: boolean; extras?: K
       value: formatMoney(kpis.pagosFijos),
       iconName: 'scale',
       accent: STATUS.warning,
+      trend: extras.pagosFijosTrend,
       caption: 'Deuda IESS (ver aviso)',
     },
     {
@@ -133,6 +141,7 @@ export function renderKpiCards(kpis: Kpis, opts: { compact?: boolean; extras?: K
       value: formatMoney(kpis.saldoNetoProyectado),
       iconName: 'trendUp',
       accent: kpis.saldoNetoProyectado < 0 ? STATUS.critical : STATUS.good,
+      trend: extras.saldoNetoTrend,
       caption: kpis.saldoNetoProyectado < 0 ? 'Déficit proyectado' : 'Superávit proyectado',
     },
     {

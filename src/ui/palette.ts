@@ -1,5 +1,5 @@
-// Paleta cerrada de la identidad TCI Corporate Analytics — nunca introducir
-// un tono fuera de esta lista. Se referencia por rol en todos los componentes.
+// Paleta cerrada de la identidad Centro de Control Transcomerinter — nunca
+// introducir un tono fuera de esta lista. Se referencia por rol en todos los componentes.
 export const BRAND = {
   primary: '#0F4C81',
   primaryDark: '#0B3A63',

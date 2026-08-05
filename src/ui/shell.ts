@@ -100,7 +100,7 @@ export function renderHeader(opts: {
         ),
         h('div', {}, [
           h('h1', { class: 'font-semibold leading-tight', style: 'font-size:15px;color:var(--ink-primary)' }, [
-            'TCI Corporate Analytics',
+            'Centro de Control Transcomerinter',
           ]),
           h('p', { class: 'text-xs leading-tight', style: 'color:var(--ink-secondary)' }, ['Módulo Tesorería']),
         ]),
@@ -139,7 +139,6 @@ export type TabId =
   | 'tablaCheques'
   | 'recaudo'
   | 'pagos'
-  | 'alertas'
   | 'configuracion';
 
 export const TABS: { id: TabId; label: string; icon: IconName }[] = [
@@ -150,7 +149,6 @@ export const TABS: { id: TabId; label: string; icon: IconName }[] = [
   { id: 'tablaCheques', label: 'Tabla Cheques', icon: 'table' },
   { id: 'recaudo', label: 'Proyección de Recaudo', icon: 'inflow' },
   { id: 'pagos', label: 'Pagos', icon: 'outflowCheck' },
-  { id: 'alertas', label: 'Alertas', icon: 'bell' },
   { id: 'configuracion', label: 'Configuración', icon: 'settings' },
 ];
 

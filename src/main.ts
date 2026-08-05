@@ -254,9 +254,6 @@ function render(): void {
   } else if (activeTab === 'pagos') {
     const excelPagosFijos = dataset.events.filter((e) => e.kind === 'pago_fijo' && e.source === 'PAGOS FIJOS');
     main.appendChild(renderPagosPanel(manualPagos, excelPagosFijos, excelEstados));
-  } else if (activeTab === 'alertas') {
-    const daily = buildDailyProjection(filtered, openingBalance, filters.dateFrom, projectionDays);
-    main.appendChild(renderAlerts(buildAlerts(daily, filtered)));
   } else if (activeTab === 'configuracion') {
     main.appendChild(renderConfigPanel());
   }

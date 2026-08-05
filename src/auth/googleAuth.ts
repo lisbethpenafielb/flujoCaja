@@ -30,7 +30,6 @@ interface TokenResponse {
   error?: string;
 }
 
-let tokenClient: TokenClient | null = null;
 let accessToken: string | null = null;
 let tokenExpiresAt = 0;
 
@@ -74,14 +73,9 @@ export async function requestAccessToken(interactive = true): Promise<string> {
   }
   await loadGisScript();
 
-  if (!tokenClient) {
-    tokenClient = window.google!.accounts.oauth2.initTokenClient({
-      client_id: GOOGLE_CLIENT_ID,
-      scope: GOOGLE_DRIVE_SCOPE,
-      callback: () => {}, // se sobreescribe por invocación, ver abajo
-    });
-  }
-
+  // El callback de GIS se define por invocación (necesita cerrar sobre `resolve`/
+  // `reject` de esta llamada puntual), así que el cliente se recrea cada vez en vez
+  // de reutilizar uno guardado — initTokenClient es liviano y no abre UI por sí solo.
   return new Promise((resolve, reject) => {
     const client = window.google!.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,

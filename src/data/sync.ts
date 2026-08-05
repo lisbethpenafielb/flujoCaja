@@ -28,15 +28,15 @@ export async function syncFromDrive(): Promise<void> {
       fetchWorkbookByName(SOURCE_FILES.pagosFijos),
     ]);
 
-    const chequeEvents = parseChequesWorkbook(cheques.bytes, warnings);
+    const chequeEvents = await parseChequesWorkbook(cheques.bytes, warnings);
     allEvents.push(...chequeEvents.filter((e) => !e.excluded));
     allExcluded.push(...chequeEvents.filter((e) => e.excluded));
 
-    const carteraResult = parseCarteraWorkbook(cartera.bytes, warnings);
+    const carteraResult = await parseCarteraWorkbook(cartera.bytes, warnings);
     allEvents.push(...carteraResult.events);
     allExcluded.push(...carteraResult.excluded);
 
-    const pagosFijosEvents = parsePagosFijosWorkbook(pagosFijos.bytes, warnings);
+    const pagosFijosEvents = await parsePagosFijosWorkbook(pagosFijos.bytes, warnings);
     allEvents.push(...pagosFijosEvents);
 
     store.setDataset(allEvents, allExcluded, warnings);

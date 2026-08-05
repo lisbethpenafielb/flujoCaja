@@ -44,6 +44,7 @@ import { renderRecaudoPanel } from './ui/recaudoPanel';
 import { renderConfigPanel } from './ui/configPanel';
 import { renderEmptyState, renderWarningsBanner } from './ui/emptyState';
 import { h, mount } from './ui/dom';
+import { BRAND } from './ui/palette';
 import { addDays, daysBetween, monthBounds, monthKeyLabelEs, todayISO } from './utils/dates';
 import { loadDemoData } from './demo/loadDemo';
 
@@ -52,7 +53,41 @@ let activeTab: TabId = 'resumen';
 
 function setTab(id: TabId): void {
   activeTab = id;
-  render();
+  renderSafe();
+}
+
+function renderErrorScreen(err: unknown): void {
+  console.error('Error al renderizar el módulo de Tesorería:', err);
+  const message = err instanceof Error ? err.message : String(err);
+  mount(
+    app,
+    h('div', { class: 'flex flex-col items-center justify-center gap-3 text-center px-6', style: 'min-height:100vh' }, [
+      h('h1', { style: 'font-size:18px;font-weight:600;color:var(--ink-primary)' }, ['Ocurrió un error inesperado']),
+      h('p', { class: 'text-sm max-w-md', style: 'color:var(--ink-muted)' }, [
+        'El módulo de Tesorería no pudo mostrar esta pantalla. Recargar la página suele resolverlo; si el error persiste, avisa a sistemas con este detalle:',
+      ]),
+      h('code', { class: 'text-xs px-3 py-2 rounded max-w-lg', style: 'background:var(--page);color:#a3271f;word-break:break-word' }, [message]),
+      h(
+        'button',
+        {
+          class: 'text-sm font-medium rounded-lg px-4 py-2 mt-2',
+          style: `background:${BRAND.primary};color:#fff`,
+          onclick: () => window.location.reload(),
+        },
+        ['Recargar']
+      ),
+    ])
+  );
+}
+
+/** Envuelve render() para que un error en cualquier pestaña muestre un mensaje
+ *  legible en vez de dejar la pantalla en blanco sin explicación. */
+function renderSafe(): void {
+  try {
+    render();
+  } catch (err) {
+    renderErrorScreen(err);
+  }
 }
 
 function render(): void {
@@ -264,5 +299,5 @@ function render(): void {
   root.appendChild(footer);
 }
 
-store.subscribe(render);
-render();
+store.subscribe(renderSafe);
+renderSafe();

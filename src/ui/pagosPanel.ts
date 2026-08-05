@@ -108,6 +108,7 @@ function pagoRow(pago: ManualPago): HTMLElement {
       class: 'inline-flex items-center justify-center rounded-lg flex-shrink-0',
       style: `width:32px;height:32px;color:${STATUS.critical}`,
       title: 'Eliminar pago',
+      'aria-label': 'Eliminar pago',
       onclick: () => store.removeManualPago(pago.id),
     },
     [icon('trash', { size: 15 })]

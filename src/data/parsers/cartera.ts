@@ -1,3 +1,4 @@
+import type { WorkBook } from 'xlsx';
 import type { CashEvent, FlowConfidence } from '../../types';
 import { excelValueToISO, nextWeekdayDate, todayISO } from '../../utils/dates';
 import { parseExcelNumber } from '../../utils/format';
@@ -34,7 +35,7 @@ function classifyObservacion(obs: string): FlowConfidence {
   return 'no_confirmado';
 }
 
-function buildLegalMap(wb: ReturnType<typeof readWorkbook>): Map<string, string> {
+function buildLegalMap(wb: WorkBook): Map<string, string> {
   const grids = allSheetGrids(wb);
   const legalSheet =
     grids.find((g) => /DETALLE LEGAL/i.test(g.name)) ?? grids.find((g) => /^legal$/i.test(g.name));
@@ -56,7 +57,7 @@ function buildLegalMap(wb: ReturnType<typeof readWorkbook>): Map<string, string>
 }
 
 function parseTransportistas(
-  wb: ReturnType<typeof readWorkbook>,
+  wb: WorkBook,
   legalMap: Map<string, string>,
   warnings: string[]
 ): { events: CashEvent[]; excluded: CashEvent[]; clientesConDetalle: Set<string> } {
@@ -128,7 +129,7 @@ function parseTransportistas(
 }
 
 function parseResumen(
-  wb: ReturnType<typeof readWorkbook>,
+  wb: WorkBook,
   legalMap: Map<string, string>,
   clientesConDetalle: Set<string>,
   warnings: string[]
@@ -206,8 +207,11 @@ function parseResumen(
   return { events, excluded };
 }
 
-export function parseCarteraWorkbook(bytes: ArrayBuffer, warnings: string[]): { events: CashEvent[]; excluded: CashEvent[] } {
-  const wb = readWorkbook(bytes);
+export async function parseCarteraWorkbook(
+  bytes: ArrayBuffer,
+  warnings: string[]
+): Promise<{ events: CashEvent[]; excluded: CashEvent[] }> {
+  const wb = await readWorkbook(bytes);
   const legalMap = buildLegalMap(wb);
   const { events: trEvents, excluded: trExcluded, clientesConDetalle } = parseTransportistas(wb, legalMap, warnings);
   const { events: resEvents, excluded: resExcluded } = parseResumen(wb, legalMap, clientesConDetalle, warnings);

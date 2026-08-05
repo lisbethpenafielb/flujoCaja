@@ -26,8 +26,8 @@ function parseMesLabel(label: string): string | null {
   return `${year}-${String(mon).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
-export function parsePagosFijosWorkbook(bytes: ArrayBuffer, warnings: string[]): CashEvent[] {
-  const wb = readWorkbook(bytes);
+export async function parsePagosFijosWorkbook(bytes: ArrayBuffer, warnings: string[]): Promise<CashEvent[]> {
+  const wb = await readWorkbook(bytes);
   const grids = allSheetGrids(wb);
 
   const target = grids

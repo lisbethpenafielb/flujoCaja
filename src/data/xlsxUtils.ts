@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import type { WorkBook } from 'xlsx';
 
 export type Row = Record<string, unknown>;
 
@@ -7,17 +7,27 @@ export interface SheetGrid {
   rows: unknown[][];
 }
 
-export function readWorkbook(bytes: ArrayBuffer): XLSX.WorkBook {
-  return XLSX.read(bytes, { type: 'array', cellDates: true });
+// `xlsx` pesa ~330KB y solo hace falta al sincronizar con Drive — la mayoría de
+// visitas solo miran el dashboard (demo o datos ya cargados), así que se importa
+// dinámicamente en vez de ir en el bundle principal. `readWorkbook` es el único
+// punto de entrada async; el resto de funciones de este archivo son sync y
+// asumen que ya se llamó (y esperó) a `readWorkbook` antes, como hacen los 3
+// parsers (cheques/cartera/pagosFijos) hoy.
+let xlsxModule: typeof import('xlsx') | null = null;
+
+export async function readWorkbook(bytes: ArrayBuffer): Promise<WorkBook> {
+  xlsxModule ??= await import('xlsx');
+  return xlsxModule.read(bytes, { type: 'array', cellDates: true });
 }
 
-export function sheetToGrid(wb: XLSX.WorkBook, sheetName: string): unknown[][] {
+export function sheetToGrid(wb: WorkBook, sheetName: string): unknown[][] {
   const ws = wb.Sheets[sheetName];
   if (!ws) return [];
-  return XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, raw: true, defval: null });
+  if (!xlsxModule) throw new Error('sheetToGrid: llamar a readWorkbook() antes');
+  return xlsxModule.utils.sheet_to_json<unknown[]>(ws, { header: 1, raw: true, defval: null });
 }
 
-export function allSheetGrids(wb: XLSX.WorkBook): SheetGrid[] {
+export function allSheetGrids(wb: WorkBook): SheetGrid[] {
   return wb.SheetNames.map((name) => ({ name, rows: sheetToGrid(wb, name) }));
 }
 

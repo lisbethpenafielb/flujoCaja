@@ -40,8 +40,8 @@ const COL = {
   negociacion: columnLetterToIndex('W'),
 };
 
-export function parseChequesWorkbook(bytes: ArrayBuffer, warnings: string[]): CashEvent[] {
-  const wb = readWorkbook(bytes);
+export async function parseChequesWorkbook(bytes: ArrayBuffer, warnings: string[]): Promise<CashEvent[]> {
+  const wb = await readWorkbook(bytes);
   const grids = allSheetGrids(wb);
 
   // La hoja de detalle real de cheques es la que trae encabezados EGRESO/PROVEEDORES/

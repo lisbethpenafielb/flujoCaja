@@ -98,7 +98,11 @@ export function renderTreasuryMatrix(matrix: TreasuryMatrix, title: string, subt
       value: value ? String(value) : '',
       class: 'tabular-nums text-sm text-right w-full rounded px-1.5 py-1 outline-none',
       style: 'border:1px solid var(--gridline);background:var(--surface);color:#a3271f;max-width:110px',
-      oninput: (e: Event) => {
+      // onchange (no oninput): cada edición re-renderiza toda la app (ver dom.ts:mount,
+      // que hace innerHTML='' y reconstruye), así que reaccionar a cada tecla destruye
+      // el input a mitad de la escritura y el usuario pierde el foco. onchange dispara
+      // una sola vez, al salir del campo (blur) o con Enter, cuando ya no importa.
+      onchange: (e: Event) => {
         const raw = (e.target as HTMLInputElement).value;
         const num = raw === '' ? null : Number(raw);
         opts.onManualEdit?.(category, date, num !== null && isFinite(num) ? num : null);
@@ -114,7 +118,8 @@ export function renderTreasuryMatrix(matrix: TreasuryMatrix, title: string, subt
       value: value === null ? '' : String(value),
       class: 'tabular-nums text-sm text-right w-full rounded px-1.5 py-1 outline-none',
       style: 'border:1px solid var(--gridline);background:var(--surface);color:var(--ink-primary);max-width:110px',
-      oninput: (e: Event) => {
+      // onchange, no oninput — mismo motivo que manualInput() arriba.
+      onchange: (e: Event) => {
         const raw = (e.target as HTMLInputElement).value;
         const num = raw === '' ? null : Number(raw);
         opts.onBankBalanceEdit?.(accountId, num !== null && isFinite(num) ? num : null);

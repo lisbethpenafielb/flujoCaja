@@ -35,6 +35,8 @@ const PATHS: Record<string, string> = {
   externalArrow: '<path d="M7 17 17 7M8 7h9v9"/>',
   arrowRight: '<path d="M5 12h14M13 6l6 6-6 6"/>',
   checkCircle: '<path d="M20 6 9 17l-5-5"/>',
+  trash: '<path d="M4 7h16"/><path d="M6 7V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/><path d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7"/><path d="M10 11v6M14 11v6"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
 };
 
 export function iconSvg(name: keyof typeof PATHS, size = 16, strokeWidth = 2): string {

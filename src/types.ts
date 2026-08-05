@@ -92,8 +92,10 @@ export interface ChequeFilters {
   negociacion: string | 'todos';
   mes: string | 'todos';
   anio: string | 'todos';
-  /** Fecha exacta (YYYY-MM-DD); cadena vacía = sin filtrar. */
-  dia: string;
+  /** Rango de fechas (YYYY-MM-DD); cadena vacía en cualquiera = sin límite
+   *  en ese extremo — permite revisar, por ejemplo, los cheques de la semana. */
+  fechaInicio: string;
+  fechaFin: string;
 }
 
 // --- Flujo de Caja en formato matriz (filas = partidas, columnas = período) -
@@ -116,6 +118,9 @@ export interface TreasuryRow {
    *  Terceros): sus celdas por período se pueden digitar manualmente. */
   manual?: boolean;
   manualCategory?: string;
+  /** Presente solo en filas `kind: 'banco'` — permite editar `rezagados`
+   *  (el saldo inicial digitado a mano) directamente en la matriz. */
+  bankAccountId?: string;
 }
 
 export interface TreasuryMatrix {
@@ -189,4 +194,20 @@ export interface FlatChequePivot {
   rows: FlatChequePivotRow[];
   totalsByDate: Record<string, number>;
   grandTotal: number;
+}
+
+// --- Pagos manuales (pestaña Pagos) -----------------------------------------
+// PAGOS FIJOS.xlsx solo trae el convenio IESS (ver parsers/pagosFijos.ts);
+// nómina, arriendos, servicios básicos, seguros, etc. no vienen de ningún
+// Excel. Esta es la lista que Tesorería gestiona a mano, con estado propio:
+// un pago "pagado" deja de aparecer en el Flujo; "pendiente" aparece en la
+// fecha indicada, igual que un cheque o un pago fijo real.
+export type PagoEstado = 'pendiente' | 'pagado';
+
+export interface ManualPago {
+  id: string;
+  concepto: string;
+  monto: number;
+  fecha: string;
+  estado: PagoEstado;
 }

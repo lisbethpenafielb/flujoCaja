@@ -53,6 +53,9 @@ export interface TreasuryMatrixOptions {
    *  Terceros) muestran un input editable en cada columna de un solo día en
    *  vez de texto — esa información no viene de ningún Excel. */
   onManualEdit?: (category: string, date: string, value: number | null) => void;
+  /** Cuando se pasa, la celda "Rezagados" de las filas `kind: 'banco'` se
+   *  vuelve un input editable — reemplaza a la extinta pestaña Bancos. */
+  onBankBalanceEdit?: (accountId: string, value: number | null) => void;
 }
 
 export function renderTreasuryMatrix(matrix: TreasuryMatrix, title: string, subtitle: string, opts: TreasuryMatrixOptions = {}): HTMLElement {
@@ -103,9 +106,26 @@ export function renderTreasuryMatrix(matrix: TreasuryMatrix, title: string, subt
     });
   }
 
+  function bankBalanceInput(accountId: string, value: number | null): HTMLElement {
+    return h('input', {
+      type: 'number',
+      step: '0.01',
+      placeholder: '0.00',
+      value: value === null ? '' : String(value),
+      class: 'tabular-nums text-sm text-right w-full rounded px-1.5 py-1 outline-none',
+      style: 'border:1px solid var(--gridline);background:var(--surface);color:var(--ink-primary);max-width:110px',
+      oninput: (e: Event) => {
+        const raw = (e.target as HTMLInputElement).value;
+        const num = raw === '' ? null : Number(raw);
+        opts.onBankBalanceEdit?.(accountId, num !== null && isFinite(num) ? num : null);
+      },
+    });
+  }
+
   const bodyRows = rows.map((row) => {
     const style = rowStyle(row.kind);
     const editable = Boolean(row.manual && row.manualCategory && opts.onManualEdit);
+    const bankEditable = Boolean(row.kind === 'banco' && row.bankAccountId && opts.onBankBalanceEdit);
     const bg = style.bg ?? 'var(--surface)';
 
     const valueCells = row.values.map((v, i) => {
@@ -133,10 +153,10 @@ export function renderTreasuryMatrix(matrix: TreasuryMatrix, title: string, subt
       h(
         'td',
         {
-          class: 'tabular-nums text-sm px-3 py-2.5 text-right',
+          class: bankEditable ? 'px-1.5 py-1' : 'tabular-nums text-sm px-3 py-2.5 text-right',
           style: `${style.value};background:${style.bgSolid};position:sticky;left:${DETAIL_W}px;z-index:5;width:${REZAGADOS_W}px;min-width:${REZAGADOS_W}px`,
         },
-        [fmt(row.rezagados)]
+        [bankEditable ? bankBalanceInput(row.bankAccountId!, row.rezagados) : fmt(row.rezagados)]
       ),
       ...valueCells,
       h(
@@ -152,13 +172,17 @@ export function renderTreasuryMatrix(matrix: TreasuryMatrix, title: string, subt
   });
 
   const hasManualRows = rows.some((r) => r.manual);
+  const hints = [
+    opts.onManualEdit && hasManualRows ? 'Préstamo Perú y Préstamos Terceros se digitan a mano' : null,
+    opts.onBankBalanceEdit ? 'saldo de cada banco editable en su fila' : null,
+  ].filter((h): h is string => h !== null);
 
   return h('div', { class: 'card overflow-hidden flex flex-col' }, [
     h('div', { class: 'px-5 py-4 flex flex-wrap items-center justify-between gap-3 border-b', style: 'border-color:var(--gridline)' }, [
       h('div', {}, [
         h('h3', { class: 'font-semibold', style: 'font-size:15px;color:var(--ink-primary)' }, [title]),
         h('p', { class: 'text-xs', style: 'color:var(--ink-muted)' }, [
-          opts.onManualEdit && hasManualRows ? `${subtitle} · Préstamo Perú y Préstamos Terceros se digitan a mano` : subtitle,
+          hints.length ? `${subtitle} · ${hints.join(' · ')}` : subtitle,
         ]),
       ]),
       h('div', { class: 'text-right' }, [

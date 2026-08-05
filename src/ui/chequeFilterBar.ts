@@ -5,7 +5,7 @@ import { h } from './dom';
 import { filterDate, filterResetButton, filterSelect, uniqueSorted } from './filterControls';
 import type { IconName } from './icons';
 
-export type ChequeFilterDim = 'estado' | 'banco' | 'estatus2' | 'negociacion' | 'mes' | 'anio' | 'dia';
+export type ChequeFilterDim = 'estado' | 'banco' | 'estatus2' | 'negociacion' | 'mes' | 'anio' | 'fechaInicio' | 'fechaFin';
 
 const DIM_META: Record<ChequeFilterDim, { label: string; icon: IconName }> = {
   estado: { label: 'Estado', icon: 'flag' },
@@ -14,7 +14,8 @@ const DIM_META: Record<ChequeFilterDim, { label: string; icon: IconName }> = {
   negociacion: { label: 'Negociación', icon: 'tag' },
   mes: { label: 'Mes', icon: 'calendar' },
   anio: { label: 'Año', icon: 'calendar' },
-  dia: { label: 'Día', icon: 'calendar' },
+  fechaInicio: { label: 'Desde', icon: 'calendar' },
+  fechaFin: { label: 'Hasta', icon: 'calendar' },
 };
 
 function valuesFor(dim: ChequeFilterDim, events: CashEvent[]): (string | undefined)[] {
@@ -31,7 +32,8 @@ function valuesFor(dim: ChequeFilterDim, events: CashEvent[]): (string | undefin
       return events.map(chequeMes);
     case 'anio':
       return events.map(chequeAnio);
-    case 'dia':
+    case 'fechaInicio':
+    case 'fechaFin':
       return [];
   }
 }
@@ -44,8 +46,8 @@ export function renderChequeFilterBar(
 ): HTMLElement {
   const groups = dims.map((dim) => {
     const meta = DIM_META[dim];
-    if (dim === 'dia') {
-      return filterDate(meta.icon, meta.label, filters.dia, (v) => store.setChequeFilters(scope, { dia: v }));
+    if (dim === 'fechaInicio' || dim === 'fechaFin') {
+      return filterDate(meta.icon, meta.label, filters[dim], (v) => store.setChequeFilters(scope, { [dim]: v }));
     }
     return filterSelect(meta.icon, meta.label, filters[dim], uniqueSorted(valuesFor(dim, events)), (v) => store.setChequeFilters(scope, { [dim]: v }));
   });

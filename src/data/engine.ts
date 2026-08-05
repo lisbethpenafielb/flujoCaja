@@ -8,6 +8,7 @@ import type {
   Filters,
   FlatChequePivot,
   Kpis,
+  ManualPago,
   TreasuryMatrix,
   TreasuryPeriod,
   TreasuryRow,
@@ -276,6 +277,27 @@ export function buildManualLoanEvents(entries: Record<string, Record<string, num
   return events;
 }
 
+/** Convierte los pagos de la pestaña Pagos en eventos `pago_fijo` para que
+ *  participen del mismo Flujo/KPIs/alertas que la deuda IESS de PAGOS
+ *  FIJOS.xlsx. Solo los "pendientes" generan evento — un pago "pagado" ya
+ *  salió de caja, así que deja de proyectarse en el Flujo. */
+export function buildManualPagoEvents(pagos: ManualPago[]): CashEvent[] {
+  return pagos
+    .filter((p) => p.estado === 'pendiente')
+    .map((p) => ({
+      id: `pago-manual-${p.id}`,
+      kind: 'pago_fijo',
+      date: p.fecha,
+      amount: p.monto,
+      counterparty: p.concepto,
+      category: p.concepto,
+      status: 'Pendiente',
+      confidence: 'confirmado',
+      source: 'MANUAL',
+      sourceSheet: 'manual',
+    }));
+}
+
 /**
  * Flujo de Caja en formato matriz: filas por banco + partidas de movimiento,
  * columnas por período (día o semana), con una columna "REZAGADOS" (backlog —
@@ -293,6 +315,7 @@ export function buildTreasuryMatrix(events: CashEvent[], bankAccounts: BankAccou
     rezagados: a.balance,
     values: periods.map(() => null),
     total: a.balance,
+    bankAccountId: a.id,
   }));
 
   const cobranza = active.filter((e) => e.kind === 'cobranza');
@@ -384,7 +407,8 @@ export function applyChequeFilters(events: CashEvent[], filters: ChequeFilters):
     if (filters.negociacion !== 'todos' && String(e.meta?.negociacion ?? 'Sin negociación') !== filters.negociacion) return false;
     if (filters.mes !== 'todos' && chequeMes(e) !== filters.mes) return false;
     if (filters.anio !== 'todos' && chequeAnio(e) !== filters.anio) return false;
-    if (filters.dia && e.date !== filters.dia) return false;
+    if (filters.fechaInicio && e.date < filters.fechaInicio) return false;
+    if (filters.fechaFin && e.date > filters.fechaFin) return false;
     return true;
   });
 }

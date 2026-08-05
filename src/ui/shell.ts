@@ -135,10 +135,9 @@ export type TabId =
   | 'resumen'
   | 'diario'
   | 'mensual'
-  | 'bancos'
-  | 'rezagados'
-  | 'chequesDiarios'
+  | 'cheques'
   | 'tablaCheques'
+  | 'pagos'
   | 'alertas'
   | 'configuracion';
 
@@ -146,10 +145,9 @@ export const TABS: { id: TabId; label: string; icon: IconName }[] = [
   { id: 'resumen', label: 'Dashboard', icon: 'dashboard' },
   { id: 'diario', label: 'Flujo Diario', icon: 'calendarDay' },
   { id: 'mensual', label: 'Flujo Mensual', icon: 'calendarRange' },
-  { id: 'rezagados', label: 'Cheques Rezagados', icon: 'history' },
-  { id: 'chequesDiarios', label: 'Cheques Diarios', icon: 'listChecks' },
+  { id: 'cheques', label: 'Cheques', icon: 'listChecks' },
   { id: 'tablaCheques', label: 'Tabla Cheques', icon: 'table' },
-  { id: 'bancos', label: 'Bancos', icon: 'bank' },
+  { id: 'pagos', label: 'Pagos', icon: 'outflowCheck' },
   { id: 'alertas', label: 'Alertas', icon: 'bell' },
   { id: 'configuracion', label: 'Configuración', icon: 'settings' },
 ];

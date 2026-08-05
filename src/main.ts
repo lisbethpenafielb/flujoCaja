@@ -12,6 +12,7 @@ import {
   buildDayPeriods,
   buildManualLoanEvents,
   buildManualPagoEvents,
+  buildManualRecaudoEvents,
   buildRezagadosPivot,
   buildTreasuryMatrix,
   buildWeekPeriods,
@@ -32,6 +33,7 @@ import { renderChequeFilterBar } from './ui/chequeFilterBar';
 import { renderAlerts } from './ui/alerts';
 import { renderFilters, renderMonthFilter } from './ui/filters';
 import { renderPagosPanel } from './ui/pagosPanel';
+import { renderRecaudoPanel } from './ui/recaudoPanel';
 import { renderConfigPanel } from './ui/configPanel';
 import { renderEmptyState, renderWarningsBanner } from './ui/emptyState';
 import { h, mount } from './ui/dom';
@@ -76,14 +78,19 @@ function render(): void {
   const main = h('main', { class: 'flex-1 px-6 py-6 flex flex-col gap-5 max-w-[1700px] w-full mx-auto' });
   root.appendChild(main);
 
-  const { dataset, bankAccounts, filters, chequeFilters, manualLoanEntries, manualPagos, monthlyFilter } = state;
+  const { dataset, bankAccounts, filters, chequeFilters, manualLoanEntries, manualPagos, manualRecaudos, monthlyFilter } = state;
   const openingBalance = totalBankBalance(bankAccounts);
-  // Préstamo Perú / Préstamos Terceros y los Pagos manuales no vienen de
-  // ningún Excel: se digitan a mano y se mezclan aquí como eventos más, para
-  // que KPIs/alertas/matriz los reflejen igual que un cheque real. Nunca se
-  // mezclan en las pestañas de cheques (esas son, por definición, solo lo
-  // que trae BASE CHEQUES).
-  const eventsWithManual = [...dataset.events, ...buildManualLoanEvents(manualLoanEntries), ...buildManualPagoEvents(manualPagos)];
+  // Préstamo Perú / Préstamos Terceros, los Pagos manuales y el Recaudo
+  // manual no vienen de ningún Excel: se digitan a mano y se mezclan aquí
+  // como eventos más, para que KPIs/alertas/matriz los reflejen igual que un
+  // cheque real. Nunca se mezclan en las pestañas de cheques (esas son, por
+  // definición, solo lo que trae BASE CHEQUES).
+  const eventsWithManual = [
+    ...dataset.events,
+    ...buildManualLoanEvents(manualLoanEntries),
+    ...buildManualPagoEvents(manualPagos),
+    ...buildManualRecaudoEvents(manualRecaudos),
+  ];
   const filtered = applyFilters(eventsWithManual, filters);
   const projectionDays = Math.max(1, daysBetween(filters.dateFrom, filters.dateTo) + 1);
 
@@ -91,7 +98,7 @@ function render(): void {
   if (warningsBanner && activeTab === 'resumen') main.appendChild(warningsBanner);
 
   const CHEQUE_TABS: TabId[] = ['cheques', 'tablaCheques'];
-  const NO_FILTER_TABS: TabId[] = ['pagos', 'configuracion', 'mensual'];
+  const NO_FILTER_TABS: TabId[] = ['recaudo', 'pagos', 'configuracion', 'mensual'];
   if (!NO_FILTER_TABS.includes(activeTab) && !CHEQUE_TABS.includes(activeTab)) {
     main.appendChild(renderFilters(dataset.events, filters));
   }
@@ -204,6 +211,9 @@ function render(): void {
     const shown = applyChequeFilters(allCheques, chequeFilters.tabla);
     main.appendChild(renderChequeFilterBar('tabla', allCheques, chequeFilters.tabla, ['estado', 'banco', 'negociacion']));
     main.appendChild(renderChequesPivot(buildChequesPivot(shown)));
+  } else if (activeTab === 'recaudo') {
+    const excelRecaudo = dataset.events.filter((e) => e.kind === 'cobranza' && e.source === 'PROYECCION DE CARTERA');
+    main.appendChild(renderRecaudoPanel(manualRecaudos, excelRecaudo));
   } else if (activeTab === 'pagos') {
     const excelPagosFijos = dataset.events.filter((e) => e.kind === 'pago_fijo' && e.source === 'PAGOS FIJOS');
     main.appendChild(renderPagosPanel(manualPagos, excelPagosFijos));

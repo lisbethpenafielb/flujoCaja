@@ -137,6 +137,7 @@ export type TabId =
   | 'mensual'
   | 'cheques'
   | 'tablaCheques'
+  | 'recaudo'
   | 'pagos'
   | 'alertas'
   | 'configuracion';
@@ -147,6 +148,7 @@ export const TABS: { id: TabId; label: string; icon: IconName }[] = [
   { id: 'mensual', label: 'Flujo Mensual', icon: 'calendarRange' },
   { id: 'cheques', label: 'Cheques', icon: 'listChecks' },
   { id: 'tablaCheques', label: 'Tabla Cheques', icon: 'table' },
+  { id: 'recaudo', label: 'Proyección de Recaudo', icon: 'inflow' },
   { id: 'pagos', label: 'Pagos', icon: 'outflowCheck' },
   { id: 'alertas', label: 'Alertas', icon: 'bell' },
   { id: 'configuracion', label: 'Configuración', icon: 'settings' },

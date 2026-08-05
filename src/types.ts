@@ -211,3 +211,17 @@ export interface ManualPago {
   fecha: string;
   estado: PagoEstado;
 }
+
+// --- Recaudo manual (pestaña Proyección de Recaudo) -------------------------
+// Igual que Pagos, pero del lado de ingresos: Tesorería gestiona a mano cada
+// cobro proyectado, con su propio estado — "pendiente" se proyecta en el
+// Flujo en la fecha indicada, "pagado" (ya cobrado) deja de proyectarse. La
+// proyección de PROYECCION DE CARTERA.xlsx sigue alimentando el Flujo tal
+// cual, y se lista aparte en la misma pestaña como referencia de solo lectura.
+export interface ManualRecaudo {
+  id: string;
+  concepto: string;
+  monto: number;
+  fecha: string;
+  estado: PagoEstado;
+}

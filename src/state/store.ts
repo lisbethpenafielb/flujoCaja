@@ -1,7 +1,8 @@
-import type { BankAccount, CashEvent, ChequeFilters, Filters, LoadedDataset, ManualPago } from '../types';
+import type { BankAccount, CashEvent, ChequeFilters, Filters, LoadedDataset, ManualPago, ManualRecaudo } from '../types';
 import { loadBankAccounts, saveBankAccounts } from './bankAccounts';
 import { loadManualLoanEntries, saveManualLoanEntries, type ManualLoanEntries } from './manualLoans';
 import { loadManualPagos, saveManualPagos } from './manualPagos';
+import { loadManualRecaudos, saveManualRecaudos } from './manualRecaudos';
 import { todayISO, addDays, currentMonthKey } from '../utils/dates';
 
 export type SyncStatus = 'idle' | 'authenticating' | 'loading' | 'ready' | 'error';
@@ -22,6 +23,7 @@ interface State {
   monthlyFilter: string;
   manualLoanEntries: ManualLoanEntries;
   manualPagos: ManualPago[];
+  manualRecaudos: ManualRecaudo[];
   syncStatus: SyncStatus;
   syncError: string | null;
   isDemo: boolean;
@@ -66,6 +68,7 @@ class Store {
     monthlyFilter: currentMonthKey(),
     manualLoanEntries: loadManualLoanEntries(),
     manualPagos: loadManualPagos(),
+    manualRecaudos: loadManualRecaudos(),
     syncStatus: 'idle',
     syncError: null,
     isDemo: false,
@@ -172,6 +175,31 @@ class Store {
   removeManualPago(id: string): void {
     this.state.manualPagos = this.state.manualPagos.filter((p) => p.id !== id);
     saveManualPagos(this.state.manualPagos);
+    this.emit();
+  }
+
+  addManualRecaudo(concepto: string, monto: number, fecha: string): void {
+    const recaudo: ManualRecaudo = {
+      id: `recaudo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      concepto,
+      monto,
+      fecha,
+      estado: 'pendiente',
+    };
+    this.state.manualRecaudos = [...this.state.manualRecaudos, recaudo];
+    saveManualRecaudos(this.state.manualRecaudos);
+    this.emit();
+  }
+
+  updateManualRecaudo(id: string, partial: Partial<Pick<ManualRecaudo, 'concepto' | 'monto' | 'fecha' | 'estado'>>): void {
+    this.state.manualRecaudos = this.state.manualRecaudos.map((r) => (r.id === id ? { ...r, ...partial } : r));
+    saveManualRecaudos(this.state.manualRecaudos);
+    this.emit();
+  }
+
+  removeManualRecaudo(id: string): void {
+    this.state.manualRecaudos = this.state.manualRecaudos.filter((r) => r.id !== id);
+    saveManualRecaudos(this.state.manualRecaudos);
     this.emit();
   }
 }

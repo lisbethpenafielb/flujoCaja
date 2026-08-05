@@ -9,6 +9,7 @@ import type {
   FlatChequePivot,
   Kpis,
   ManualPago,
+  ManualRecaudo,
   TreasuryMatrix,
   TreasuryPeriod,
   TreasuryRow,
@@ -291,6 +292,28 @@ export function buildManualPagoEvents(pagos: ManualPago[]): CashEvent[] {
       amount: p.monto,
       counterparty: p.concepto,
       category: p.concepto,
+      status: 'Pendiente',
+      confidence: 'confirmado',
+      source: 'MANUAL',
+      sourceSheet: 'manual',
+    }));
+}
+
+/** Convierte los cobros de la pestaña Proyección de Recaudo en eventos
+ *  `cobranza` para que participen del mismo Flujo/KPIs/alertas que la
+ *  proyección de PROYECCION DE CARTERA.xlsx. Solo los "pendientes" generan
+ *  evento — un recaudo "pagado" ya entró a caja, así que deja de
+ *  proyectarse en el Flujo. */
+export function buildManualRecaudoEvents(recaudos: ManualRecaudo[]): CashEvent[] {
+  return recaudos
+    .filter((r) => r.estado === 'pendiente')
+    .map((r) => ({
+      id: `recaudo-manual-${r.id}`,
+      kind: 'cobranza',
+      date: r.fecha,
+      amount: r.monto,
+      counterparty: r.concepto,
+      category: r.concepto,
       status: 'Pendiente',
       confidence: 'confirmado',
       source: 'MANUAL',

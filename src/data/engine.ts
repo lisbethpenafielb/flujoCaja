@@ -22,6 +22,8 @@ import {
   daysBetween,
   formatDateEs,
   formatDateLongEs,
+  monthBounds,
+  monthKeyOf,
   monthNameEs,
   todayISO,
   weekStart,
@@ -213,22 +215,47 @@ export function buildDayPeriods(fromISO: string, toISO: string): TreasuryPeriod[
   return periods;
 }
 
-export function buildWeekPeriods(fromISO: string, toISO: string): TreasuryPeriod[] {
-  const n = Math.max(1, daysBetween(fromISO, toISO) + 1);
-  const byWeek = new Map<string, string[]>();
-  for (let i = 0; i < n; i++) {
-    const date = addDays(fromISO, i);
-    const ws = weekStart(date);
-    if (!byWeek.has(ws)) byWeek.set(ws, []);
-    byWeek.get(ws)!.push(date);
+/**
+ * Semanas completas (lunes-domingo) del mes `monthKey` ("YYYY-MM"), cada una
+ * asignada por completo al mes donde caen la mayoría (4 o más) de sus 7 días
+ * — igual al criterio que usa Tesorería para cerrar el Flujo Mensual: una
+ * semana nunca se corta a la mitad entre dos meses.
+ *
+ * Ej.: la semana lunes 27 jul - domingo 02 ago tiene 5 días en julio y 2 en
+ * agosto, así que es una semana de julio completa (con sus 2 días de agosto
+ * incluidos) y no aparece en el Flujo Mensual de agosto. La semana lunes 31
+ * ago - domingo 06 sep tiene 1 día en agosto y 6 en septiembre, así que es
+ * una semana de septiembre completa y no aparece en agosto.
+ */
+export function buildMonthWeekPeriods(monthKey: string): TreasuryPeriod[] {
+  const { start: monthStart, end: monthEnd } = monthBounds(monthKey);
+  // Una semana de 7 días solo puede "pedir prestados" hasta 3 días de un mes
+  // vecino y seguir teniendo mayoría (4+) en el mes actual, así que basta
+  // explorar 6 días antes/después del mes calendario para no perder ninguna
+  // semana candidata.
+  const scanFrom = addDays(monthStart, -6);
+  const scanTo = addDays(monthEnd, 6);
+  const scanDays = daysBetween(scanFrom, scanTo) + 1;
+
+  const seenWeeks = new Set<string>();
+  const periods: TreasuryPeriod[] = [];
+
+  for (let i = 0; i < scanDays; i++) {
+    const ws = weekStart(addDays(scanFrom, i));
+    if (seenWeeks.has(ws)) continue;
+    seenWeeks.add(ws);
+
+    const we = addDays(ws, 6);
+    let daysInThisMonth = 0;
+    for (let d = 0; d < 7; d++) {
+      if (monthKeyOf(addDays(ws, d)) === monthKey) daysInThisMonth++;
+    }
+    if (daysInThisMonth >= 4) {
+      periods.push({ key: ws, label: `${formatDateEs(ws)} – ${formatDateEs(we)}`, start: ws, end: we });
+    }
   }
-  return [...byWeek.entries()]
-    .sort(([a], [b]) => (a < b ? -1 : 1))
-    .map(([ws, dates]) => {
-      const start = dates[0];
-      const end = dates[dates.length - 1];
-      return { key: ws, label: `${formatDateEs(start)} – ${formatDateEs(end)}`, start, end };
-    });
+
+  return periods.sort((a, b) => (a.key < b.key ? -1 : 1));
 }
 
 function sumInRange(events: CashEvent[], start: string, end: string): number {

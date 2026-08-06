@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BankAccount, CashEvent, ExcelEstadoOverrides, ManualPago, ManualRecaudo } from '../types';
+import { daysBetween } from '../utils/dates';
 import {
   applyFilters,
   buildAlerts,
@@ -8,8 +9,8 @@ import {
   buildManualLoanEvents,
   buildManualPagoEvents,
   buildManualRecaudoEvents,
+  buildMonthWeekPeriods,
   buildTreasuryMatrix,
-  buildWeekPeriods,
   chequesRezagados,
   computeKpis,
   filterByExcelEstado,
@@ -198,15 +199,44 @@ describe('chequesRezagados', () => {
   });
 });
 
-describe('buildDayPeriods / buildWeekPeriods', () => {
+describe('buildDayPeriods', () => {
   it('genera un período por día en el rango, inclusive', () => {
     const periods = buildDayPeriods('2026-01-01', '2026-01-03');
     expect(periods.map((p) => p.key)).toEqual(['2026-01-01', '2026-01-02', '2026-01-03']);
   });
+});
 
-  it('agrupa los días del rango en semanas ordenadas', () => {
-    const periods = buildWeekPeriods('2026-01-01', '2026-01-15');
-    expect(periods.length).toBeGreaterThan(0);
+describe('buildMonthWeekPeriods', () => {
+  // 2026-07-27 es lunes; 2026-08-02 es domingo (5 días en julio, 2 en agosto).
+  it('una semana con mayoría de días en el mes anterior pertenece a ese mes, completa', () => {
+    const julio = buildMonthWeekPeriods('2026-07');
+    expect(julio.some((p) => p.start === '2026-07-27' && p.end === '2026-08-02')).toBe(true);
+
+    const agosto = buildMonthWeekPeriods('2026-08');
+    expect(agosto.some((p) => p.start === '2026-07-27')).toBe(false);
+    // El primer día de agosto (sábado 01) queda cubierto por la semana de julio,
+    // así que la primera semana de agosto propiamente dicha empieza el lunes siguiente.
+    expect(agosto[0].start).toBe('2026-08-03');
+  });
+
+  // 2026-08-31 es lunes; 2026-09-06 es domingo (1 día en agosto, 6 en septiembre).
+  it('una semana con mayoría de días en el mes siguiente pertenece a ese mes, completa', () => {
+    const agosto = buildMonthWeekPeriods('2026-08');
+    expect(agosto.some((p) => p.start === '2026-08-31')).toBe(false);
+    expect(agosto[agosto.length - 1].end).toBe('2026-08-30');
+
+    const septiembre = buildMonthWeekPeriods('2026-09');
+    expect(septiembre.some((p) => p.start === '2026-08-31' && p.end === '2026-09-06')).toBe(true);
+  });
+
+  it('ninguna semana se corta: siempre son 7 días completos', () => {
+    for (const p of buildMonthWeekPeriods('2026-08')) {
+      expect(daysBetween(p.start, p.end)).toBe(6);
+    }
+  });
+
+  it('las semanas quedan ordenadas por fecha de inicio', () => {
+    const periods = buildMonthWeekPeriods('2026-08');
     const sortedKeys = [...periods.map((p) => p.key)].sort();
     expect(periods.map((p) => p.key)).toEqual(sortedKeys);
   });

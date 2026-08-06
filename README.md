@@ -21,7 +21,13 @@ navegador.
   cascada, igual a la plantilla de control que ya usa Tesorería. El saldo de
   cada banco (columna REZAGADOS de las filas `SALDO <BANCO>`) y las filas
   Préstamo Perú / Préstamos Terceros son celdas editables — ver "Datos de
-  ingreso manual" abajo.
+  ingreso manual" abajo. En Flujo Mensual, las semanas siempre se muestran
+  completas (lunes a domingo): una semana se asigna entera al mes donde caen
+  4 o más de sus 7 días, nunca se corta a la mitad. Ej.: la semana lun 27 jul
+  – dom 02 ago tiene 5 días en julio, así que aparece completa en julio (no
+  en agosto); la semana lun 31 ago – dom 06 sep tiene 6 días en septiembre,
+  así que aparece completa en septiembre (no en agosto). Ver
+  `buildMonthWeekPeriods` en `engine.ts`.
 - **Cheques** — dos tablas: "Cheques Rezagados" (fecha anterior a hoy, aún no
   cobrados; filtros Estado/Banco/Estatus 2/Negociación) y "Cheques Diarios"
   (todos los cheques, tabla dinámica Proveedor × Fecha; filtros

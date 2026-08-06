@@ -13,9 +13,9 @@ import {
   buildManualLoanEvents,
   buildManualPagoEvents,
   buildManualRecaudoEvents,
+  buildMonthWeekPeriods,
   buildRezagadosPivot,
   buildTreasuryMatrix,
-  buildWeekPeriods,
   chequesRezagados,
   computeKpis,
   filterByExcelEstado,
@@ -233,12 +233,17 @@ function render(): void {
     // filtro aquí es el mes calendario elegido en `monthlyFilter`, así que
     // se recalcula todo (KPIs, tarjetas semanales, matriz) desde cero con
     // ese rango — nunca se mezcla con dateFrom/dateTo de otra pestaña.
-    const { start: monthStart, end: monthEnd } = monthBounds(monthlyFilter);
-    const daysInMonth = daysBetween(monthStart, monthEnd) + 1;
-    const monthlyDaily = buildDailyProjection(eventsWithManual, openingBalance, monthStart, daysInMonth);
+    const periods = buildMonthWeekPeriods(monthlyFilter);
+    // Las semanas de los bordes del mes pueden traer días "prestados" del mes
+    // anterior/siguiente (ver buildMonthWeekPeriods) — la proyección diaria
+    // debe cubrir el rango real de esas semanas, no solo el mes calendario,
+    // para que las tarjetas semanales y la matriz sumen esos días también.
+    const rangeStart = periods[0]?.start ?? monthBounds(monthlyFilter).start;
+    const rangeEnd = periods[periods.length - 1]?.end ?? monthBounds(monthlyFilter).end;
+    const rangeDays = daysBetween(rangeStart, rangeEnd) + 1;
+    const monthlyDaily = buildDailyProjection(eventsWithManual, openingBalance, rangeStart, rangeDays);
     const monthlyKpis = computeKpis(monthlyDaily, openingBalance);
     main.appendChild(renderKpiCards(monthlyKpis, { compact: true, bankBalanceKnown }));
-    const periods = buildWeekPeriods(monthStart, monthEnd);
     main.appendChild(renderWeeklySummaryCards(monthlyDaily, periods));
     const matrix = buildTreasuryMatrix(eventsWithManual, bankAccounts, periods);
     main.appendChild(
